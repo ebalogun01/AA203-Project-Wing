@@ -19,6 +19,7 @@ for n = 1:num_nodes
     for i = 1:max(size(delta_list))
         for j = 1:max(size(dir))
             temp_node = curr_node + dir(j)*delta_list{1,i};
+            % TODO: This condition check is for cube grid, implement generalized isValid later.
             if(min(temp_node) > 0 && max(temp_node) <= max(size(grid)))
                 temp_node_id = sub2ind(size(grid),temp_node(1),temp_node(2),temp_node(3));
                 temp_result = find(list_node_ids == temp_node_id);
