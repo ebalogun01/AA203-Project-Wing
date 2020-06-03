@@ -1,4 +1,4 @@
-
+class drone(object):
     def __init__(self,id,position,destination,weight,charge):
         self.id = id                    #id number to distinguish b/w drones
         self.position = position        #position of drone center w.r.t. the map
