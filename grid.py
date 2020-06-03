@@ -4,10 +4,12 @@ from astar import DetOccupancyGrid2D
 from astar import AStar
 from drone import drone
 
+# Obstacle footprints as corners of rectangles - bottom left, top right
 obstacle_footprints = [
     ((3,3),(5,5)),
     ((1,10),(2,11))]
 
+# TODO: Eventually merge these two in an obstacle class, easier to handle
 obstacle_heights = [5,15]
 
 # TODO change the city grid to a list based on certain discrete planned
