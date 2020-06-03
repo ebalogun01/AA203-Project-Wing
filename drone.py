@@ -1,6 +1,7 @@
-class drone(object):
 
-    def __init__(self,center,destination,weight,charge,speed=13,radius=1):
+class Drone(object):
+
+    def __init__(self, center, destination, weight, charge, speed=13, radius=1):
         self.center = center            #position of drone center w.r.t. the map
         self.destination = destination  #package destination or depot
         self.weight = weight            #weight of drone + package
