@@ -9,6 +9,7 @@ class drone(object):
         self.charge = charge            #current battery charge
         self.path = None
         self.initial_Q = initial_Q
+        self.status = 0    # 0: free, 1: wait_path 2: to_dest, 3: to_charg, 4: to_depot
 
     def add_package(self, package_weight):
         self.weight += package_weight
@@ -18,5 +19,5 @@ class drone(object):
 
     def constraints(self):
         self.charge[0] == self.initial_Q
-        self.charge[1:n] = self.charge[0:n-1] - self.weight * gamma - lambda * u
+        self.charge[1:n] = self.charge[0:n-1] - self.weight * gamma - lamda * u
         self.charge >= 0
