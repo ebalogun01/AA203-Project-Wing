@@ -1,4 +1,3 @@
-class drone(object):
 
     def __init__(self,id,position,destination,weight,charge):
         self.id = id                    #id number to distinguish b/w drones
