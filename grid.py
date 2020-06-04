@@ -30,7 +30,8 @@ for i in range(num_drones):
     temp = list(init_position)
     temp.append(0)  # Append the initial Z height of the drone
     init_position = tuple(temp)
-    new_drone = drone(i, init_position, [], 1, 100, 100)
+    init_velocity = (0,0,0)
+    new_drone = drone(i, init_position, init_velocity, [], 1, 100)
     drones_list.append(new_drone)
     
 # TODO This list of delivery locations needs to come from MILP solution
