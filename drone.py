@@ -13,7 +13,7 @@ class drone(object):
         self.charge = charge            #current battery charge
         self.path = None
         self.status = 0    # 0: free, 1: wait_path 2: to_dest, 3: to_charg, 4: to_depot
-        self.noise_directions = generate_directions()
+        self.noise_directions = self.generate_directions()
 
     def add_package(self, package_weight):
         self.weight += package_weight
@@ -45,3 +45,4 @@ class drone(object):
         u = u + 0.1 * np.random.randint(2) * self.noise_directions[random_direction]
         self.velocity = self.velocity + dt * u
         self.position = self.position + dt * self.velocity
+        self.position = np.rint(self.position)  # Round pos to nearest ints
