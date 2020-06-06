@@ -13,25 +13,39 @@ class Dispatch:
             drone_track[drone.id] = drone
         self.drone_track = drone_track
 
-    def assign_tasks(self, jobs):
+    def get_assignment(self, jobs):
         drone_states = np.empty((state_size, no_drones))
         drone_count = 0
         for key in self.drone_track.keys():
             drone = self.drone_track[key]
             initial_state = drone.getinitialState().T  # assumes it is a col vector so transposes to be a row since it makes for clearer matrix algebra
             drone_states[drone_count, ] = initial_state
-        assignment_matrix = cp.Variable((no_drones, no_drones), symmetric=True)
+            drone_count += 1
+        assignment_matrix = cp.Variable((no_drones, no_drones), symmetric=True) # need two matrices because CVXPY does not let multiple properties for one var
         assignment_matrix2 = cp.Variable((no_drones, no_drones), boolean=True)
         cost_function = cp.sum(cp.norm(assignment_matrix * drone_states - jobs, axis=0))
-        constraints = [assignment_matrix @ np.ones((4, 1)) == 1,
+        constraints = [assignment_matrix @ np.ones((no_drones, 1)) == 1,
                        assignment_matrix == assignment_matrix2]
         MILP_objective = cp.Minimize(cost_function)
         opt_problem = cp.Problem(MILP_objective, constraints)
         result = opt_problem.solve(solver=cp.MOSEK, verbose=True)
         print(opt_problem.status)
+        return assignment_matrix.value, drone_states
+        # NOW WE CAN ASSIGN JOBS MULTIPLE WAYS
 
-        # TODO Need to choose what to output from MILP
-        return
+    def assign_tasks(self, jobs):
+        A_matrix, drone_states = self.get_assignment(jobs)
+        drone_assign = A_matrix @ drone_states
+        for i in range(no_drones):
+            drone_with_task = drone_assign[i, ]
+            drone_id = drone_with_task[-1]
+            drone = self.drone_track[drone_id]
+            drone.task = jobs[i, ]  # this contains coordinates of job destination for that drone
+
+    def updated_drones_dict(self):
+        # TODO will the drones stored in dictionary need to be updated?
+        pass
+
 
 
 # jobs = np.array([[5, 23],
