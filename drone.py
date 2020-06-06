@@ -13,24 +13,12 @@ class drone(object):
         self.charge = charge            #current battery charge
         self.path = None
         self.status = 0    # 0: free, 1: wait_path 2: to_dest, 3: to_charg, 4: to_depot
-        self.noise_directions = self.generate_directions()
 
     def add_package(self, package_weight):
         self.weight += package_weight
 
     def add_destination(self, new_dest):
         self.destination = new_dest
-        
-    def generate_directions(self):
-        direction_list = np.empty([0,3], int)
-        for i in range(-1,2):
-            for j in range(-1,2):
-                for k in range(-1,2):
-                    if(i == 0 and j == 0 and k == 0):
-                        continue
-                    else:
-                        direction_list = np.append(direction_list, np.array((i,j,k)))
-        return direction_list
 
     #def constraints(self):
     #    self.charge[0] == self.initial_Q
@@ -41,8 +29,7 @@ class drone(object):
         # Assume u is a 3x1 force vector
         # Apply wind disturbance to the control input force
         # Assume no disturbance (p=0.5), random disturbance (p = 0.5)
-        random_direction = np.random.randint(len(self.noise_directions))
-        # u = u + 0.1 * np.random.randint(2) * self.noise_directions[random_direction]
+        u = u + 0.1 * np.random.randint(2)
         self.velocity = np.maximum(np.minimum(self.velocity + dt * u, np.array([2,2,2])), np.array([-2,-2,-2]))
         self.position = self.position + dt * self.velocity
         #self.position = np.rint(self.position)  # Round pos to nearest ints

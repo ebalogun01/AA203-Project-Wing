@@ -72,8 +72,9 @@ while(True):
     dist_to_curr_target = np.linalg.norm(drone.position - curr_target)
     print(curr_target, drone.position, dist_to_curr_target)
     dist_to_target = np.linalg.norm(drone.position - drone.path[len(drone.path)-1])
-    if dist_to_target < 1:
+    if dist_to_target < 0.1:
         print("Reached target")
+        drone.position = drone.path[len(drone.path)-1]
         break
     if index == len(drone.path)-1 or dist_to_curr_target > 3:
         continue
