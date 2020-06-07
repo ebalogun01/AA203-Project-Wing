@@ -6,6 +6,7 @@ cost -> total length of delivery routes
 d -> d_ij is the distance for drone i to deliver to request j
 
 """
+def run_milp(drones_list, delivery_test, depot_locations, paths):
 m = len(available_drones)
 n = len(delivery_list)
 d = np.zeros((m,n))

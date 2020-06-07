@@ -61,6 +61,9 @@ class AStar(object):
         ########## Code starts here ##########
         return np.sqrt((x2[0]-x1[0])**2+(x2[1]-x1[1])**2)
         ########## Code ends here ##########
+        
+    def actual_distance(self):
+        return self.cost_to_arrive[self.x_init]
 
     def snap_to_grid(self, x):
         """ Returns the closest point on a discrete state grid
