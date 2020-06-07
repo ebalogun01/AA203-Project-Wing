@@ -46,6 +46,13 @@ class Dispatch:
         # TODO will the drones stored in dictionary need to be updated?
         pass
 
+    def available(self):
+        available_drones = []
+        for drone in drone_track:
+            if drone.status==0 or drone.status==4:
+                available.append(drone)
+        return available_drones
+
 
 
 # jobs = np.array([[5, 23],
@@ -67,4 +74,3 @@ class Dispatch:
 # MILP_objective = cp.Minimize(cost_function)
 # opt_problem = cp.Problem(MILP_objective, constraints)
 # result = opt_problem.solve(solver=cp.MOSEK, verbose=True)
-
