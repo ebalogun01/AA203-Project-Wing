@@ -20,11 +20,14 @@ class drone(object):
     def add_destination(self, new_dest):
         self.destination = new_dest
 
+    def return_state(self):
+        return np.vstack([self.position,self.velocity,self.charge,self.weight,self.id])
+
     #def constraints(self):
     #    self.charge[0] == self.initial_Q
     #    self.charge[1:n] = self.charge[0:n-1] - self.weight * gamma - lamda * u
     #    self.charge >= 0
-        
+
     def step(self, u):
         # Assume u is a 3x1 force vector
         # Apply wind disturbance to the control input force
