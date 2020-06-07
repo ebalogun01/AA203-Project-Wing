@@ -6,6 +6,7 @@ from astar import AStar
 from drone import drone
 from obstacle import obstacle
 from paths import paths
+from depot import depot
 
 # Grid Parameters
 grid_lower_left = (0,0)
@@ -20,7 +21,10 @@ obstacle_footprints = [((3,0), (99,20), 50),
 obstacles = obstacle(obstacle_footprints)
 
 # Assume single depot at (0,0) to start with
-depot_locs = np.array([[0,0]])
+depot_locs = np.array([[0,0], [90,10]])
+depot_list = []
+for i in range(0, len(depot_locs)):
+    depot_list[i] = depot(i, depot_locs[i])
 
 # List of all delivery locations
 delivery_locs = np.array([[99,50],[3,99],[98,98]])
@@ -52,7 +56,9 @@ while(True):
     # Run the world simulation here and break on error
     # Errors can be collision with obstacle OR out of charge, etc.
     update_tasks()  # This will add tasks to the depot class
-    run_milp(drones_list, depot_list, paths_lookup)
+    
+    # run_milp
+    run_milp(drones_list, delivery_list, depot_list, paths_lookup)
     rollout_dynamics()
     
 
