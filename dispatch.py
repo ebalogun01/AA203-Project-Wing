@@ -5,7 +5,7 @@ state_size = 6
 no_drones = 10
 
 
-class Dispatch:
+class dispatch:
     def __init__(self, drones_list):
         self.drones_list = drones_list
         drone_track = {}
@@ -48,9 +48,9 @@ class Dispatch:
 
     def available(self):
         available_drones = []
-        for drone in drone_track:
+        for drone in self.drones_list:
             if drone.status==0 or drone.status==4:
-                available.append(drone)
+                available_drones.append(drone)
         return available_drones
 
 

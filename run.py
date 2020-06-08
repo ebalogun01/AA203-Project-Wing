@@ -7,6 +7,23 @@ from drone import drone
 from obstacle import obstacle
 from paths import paths
 from depot import depot
+from dispatch import dispatch
+from milp import run_milp
+
+def update_tasks(time, job_list, depot_list):
+    if job_list[0][0] == time:
+        temp_list = job_list.pop(0)
+        temp_list = temp_list[1]
+        for i in range(0, len(temp_list)):
+            min_dist = 1000;  # Init to large value
+            min_index = -1;
+            for j in range(0, len(depot_list)):
+                curr_dist = np.linalg.norm(temp_list[i] - depot_list[j].location)
+                if curr_dist < min_dist:
+                    min_dist = curr_dist
+                    min_index = j
+            depot_list[j].add_task(temp_list[i])
+            print("Assigned task")
 
 # Grid Parameters
 grid_lower_left = (0,0)
@@ -35,7 +52,6 @@ num_drones = 10
 heights_of_oper = [0] # [50, 60, 70, 80, 90]
 obs_grid_list = [None] * len(heights_of_oper)
 for i in range(0, len(heights_of_oper)):
-    print(obstacles.section(heights_of_oper[i]))
     obs_grid_list[i] = DetOccupancyGrid2D(\
                                 grid_upper_right[0]-grid_lower_left[0],\
                                 grid_upper_right[1]-grid_lower_left[1],\
@@ -48,22 +64,47 @@ for i in range(num_drones):
     init_velocity = np.array([0,0,0])
     new_drone = drone(i, init_position, init_velocity, [], 1, 100)
     drones_list.append(new_drone)
+
+# Initialize dispatch
+dispatch = dispatch(drones_list)
     
 # Pre-calculate A-star and Euclidean shortest paths for each height of operation
 # Note that this is the lookup table for both MILP and trajectory following
 paths_lookup = paths(grid_lower_left, grid_upper_right,
                     heights_of_oper, obs_grid_list, depot_locs, delivery_locs)
-'''
+
+# Jobs list for task simulation in world sim
+# [[time, [list of tasks to add]]]
+# Make sure jobs are listed in increasing order of time here
+job_list = [
+    [1, [delivery_locs[0], delivery_locs[1]]],
+    [4, [delivery_locs[2], delivery_locs[3]]]
+    ]
+
+time = 0
+max_time = 5
 while(True):
     # Run the world simulation here and break on error
     # Errors can be collision with obstacle OR out of charge, etc.
-    update_tasks()  # This will add tasks to the depot class
+    print("Time: ", time)
     
-    # run_milp
-    run_milp(drones_list, delivery_list, depot_list, paths_lookup)
+    update_tasks(time, job_list, depot_list)  # This will add tasks to the depot class
     
-    rollout_dynamics()
-'''
+    available_drones = dispatch.available()
+    print("Number of available drones: ", len(available_drones))
+    
+    # Run Task Assignment Function
+    # run_milp(available_drones, depot_list, paths_lookup)
+    
+    # rollout_dynamics()
+    
+    time += 1
+    if time == max_time:
+        print("Simulation Complete!")
+        break
+
+
+    
 '''    
 # TODO This list of delivery locations needs to come from MILP solution
 # TODO Need to implement a priority queue data structure somewhere
