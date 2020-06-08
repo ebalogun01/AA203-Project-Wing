@@ -20,20 +20,37 @@ output:
                                 drone assigned to it
 
 """
-def run_milp(available_drones, delivery_list, depot_locs, paths):
+def run_milp(available_drones, task_list, delivery_list, depot_list, paths):
     ## fill in matrix of distances, d
-    m = len(available_drones)
-    n = len(delivery_list)
+    ## let the drones that are at depot be m1, drones in transit to depot be m2
+    ## let number of depots be p
+    ## the number of rows of distance matrix should be (m1 + m2 * p)
+    m1 = 0
+    m2 = 0
+    for drone in available_drones:
+        if drone.status == 0:
+            m1 += 1
+        else:
+            m2 += 1
+    m = m1 + m2 * len(depot_list)
+    n = len(task_list)
     d = np.zeros((m,n))
-    for i,drone in available_drones:
-        for j,delivery in delivery_list:
-            if drone.status==0:
-                d[i,j] = path_dist(drone.position,delivery)
-            else if drone.status==4:
-                for depot in depot_locs:
-                    d = path_dist(drone.position,depot)+path_dist(depot,delivery)
-                    if d<d[i,j]:
-                        d[i,j]==d
+    for i, drone in available_drones:
+        for j, task in task_list:
+            delivery_idx = delivery_list.index(task)
+            if drone.status == 0:  # drone is at depot waiting for task
+                # Assume lowest height for now
+                depot_idx = depot_list.index(drone.position)
+                d[i,j] = paths.a_star_paths_[0].path_list[depot_idx][delivery_idx]
+            elif drone.status==4:  # drone is on way back to depot
+                for depot in depot_list:
+                    # Need to use Euclidean distance to depot here
+                    # since the drone is in-transit, cannot lookup distance from paths
+                    dist_to_depot = np.linalg.norm(drone.position[0:2]-depot.location)
+                    dist_to_task = paths.a_star_paths_[0].path_list[depot.id][delivery_idx]
+                    d = dist_to_depot + dist_to_task
+                    if d[i,j] == 0 or d < d[i,j]:
+                        d[i,j] == d
 
     ## CVX solve
     X = cp.Variable(m,n,boolean=True)

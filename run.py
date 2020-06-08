@@ -3,27 +3,12 @@
 import numpy as np
 from astar import DetOccupancyGrid2D
 from astar import AStar
-from drone import drone
+from drone import drone, rollout_dynamics
 from obstacle import obstacle
 from paths import paths
 from depot import depot
-from dispatch import dispatch
+from dispatch import dispatch, update_tasks
 from milp import run_milp
-
-def update_tasks(time, job_list, depot_list):
-    if job_list[0][0] == time:
-        temp_list = job_list.pop(0)
-        temp_list = temp_list[1]
-        for i in range(0, len(temp_list)):
-            min_dist = 1000;  # Init to large value
-            min_index = -1;
-            for j in range(0, len(depot_list)):
-                curr_dist = np.linalg.norm(temp_list[i] - depot_list[j].location)
-                if curr_dist < min_dist:
-                    min_dist = curr_dist
-                    min_index = j
-            depot_list[j].add_task(temp_list[i])
-            print("Assigned task")
 
 # Grid Parameters
 grid_lower_left = (0,0)
@@ -76,10 +61,11 @@ paths_lookup = paths(grid_lower_left, grid_upper_right,
 # Jobs list for task simulation in world sim
 # [[time, [list of tasks to add]]]
 # Make sure jobs are listed in increasing order of time here
-job_list = [
+incoming_task_list = [
     [1, [delivery_locs[0], delivery_locs[1]]],
     [4, [delivery_locs[2], delivery_locs[3]]]
     ]
+task_list = []  # this stores the current list of active tasks in simulation
 
 time = 0
 max_time = 5
@@ -88,15 +74,17 @@ while(True):
     # Errors can be collision with obstacle OR out of charge, etc.
     print("Time: ", time)
     
-    update_tasks(time, job_list, depot_list)  # This will add tasks to the depot class
+    update_tasks(time, incoming_task_list, task_list)
     
     available_drones = dispatch.available()
     print("Number of available drones: ", len(available_drones))
     
     # Run Task Assignment Function
-    # run_milp(available_drones, depot_list, paths_lookup)
+    # run_milp(available_drones, delivery_list, depot_list, paths_lookup)
+    # For now, simulate assignment
+    drones_list[0].destination = delivery_locs[0]
     
-    # rollout_dynamics()
+    rollout_dynamics(drones_list)
     
     time += 1
     if time == max_time:
