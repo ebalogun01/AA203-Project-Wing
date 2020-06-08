@@ -14,12 +14,13 @@ class dispatch:
         self.drone_track = drone_track
 
     def get_assignment(self, jobs):
+        # TODO need to include checking if particular drone is free for assignment
         drone_states = np.empty((state_size, no_drones))
         drone_count = 0
         for key in self.drone_track.keys():
             drone = self.drone_track[key]
-            initial_state = drone.getinitialState().T  # assumes it is a col vector so transposes to be a row since it makes for clearer matrix algebra
-            drone_states[drone_count, ] = initial_state
+            current_state = drone.return_state().T  # assumes it is a col vector so transposes to be a row since it makes for clearer matrix algebra
+            drone_states[drone_count, ] = current_state
             drone_count += 1
         assignment_matrix = cp.Variable((no_drones, no_drones), symmetric=True) # need two matrices because CVXPY does not let multiple properties for one var
         assignment_matrix2 = cp.Variable((no_drones, no_drones), boolean=True)
@@ -49,9 +50,10 @@ class dispatch:
     def available(self):
         available_drones = []
         for drone in self.drones_list:
-            if drone.status==0 or drone.status==4:
+            if drone.status == 0 or drone.status == 4:
                 available_drones.append(drone)
         return available_drones
+
 
 def update_tasks(time, incoming_task_list, task_list):
     if incoming_task_list[0][0] == time:
@@ -61,22 +63,3 @@ def update_tasks(time, incoming_task_list, task_list):
             task_list.append(temp_list[i])
             print("Assigned task")
     return
-# jobs = np.array([[5, 23],
-#                  [3, 44],
-#                  [4, 5],
-#                  [1, 44]])
-#
-# initial_state = np.array([[1, 1],
-#                  [3, 2],
-#                  [4, 2],
-#                  [1, 2]])
-# no_drones = 4
-#
-# assignment_matrix = cp.Variable((no_drones, no_drones), symmetric=True)
-# assignment_matrix2 = cp.Variable((no_drones, no_drones), boolean=True)
-# cost_function = cp.sum(cp.norm(assignment_matrix * initial_state - jobs, axis=0))
-# constraints = [assignment_matrix @ np.ones((4, 1)) == 1,
-#                assignment_matrix == assignment_matrix2]
-# MILP_objective = cp.Minimize(cost_function)
-# opt_problem = cp.Problem(MILP_objective, constraints)
-# result = opt_problem.solve(solver=cp.MOSEK, verbose=True)

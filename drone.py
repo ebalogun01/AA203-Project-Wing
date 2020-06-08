@@ -23,11 +23,14 @@ class drone(object):
     def add_package(self, package_weight):
         self.weight += package_weight
 
+    def drop_package(self, package_weight):
+        self.weight -= package_weight
+
     def add_destination(self, new_dest):
         self.destination = new_dest
 
     def return_state(self):
-        return np.vstack([self.position,self.velocity,self.charge,self.weight,self.id])
+        return np.vstack([self.position, self.velocity, self.charge, self.weight, self.id])
 
     #def constraints(self):
     #    self.charge[0] == self.initial_Q
@@ -59,4 +62,4 @@ def rollout_dynamics(drones_list):
             if drone.tracking_index == len(drone.path)-1 or dist_to_curr_target > 3:
                 continue
             else:
-                drone.tracking_index += 1    
+                drone.tracking_index += 1
