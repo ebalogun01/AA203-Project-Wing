@@ -22,22 +22,24 @@ obstacles = obstacle(obstacle_footprints)
 
 # Assume single depot at (0,0) to start with
 depot_locs = np.array([[0,0], [90,10]])
-depot_list = []
+depot_list = [None] * len(depot_locs)
 for i in range(0, len(depot_locs)):
     depot_list[i] = depot(i, depot_locs[i])
 
 # List of all delivery locations
-delivery_locs = np.array([[99,50],[3,99],[98,98]])
+delivery_locs = np.array([[99,50],[3,99],[98,98],[97,97]])
 
 num_drones = 10
 
 # Define grid sections according to heights of operation in 2D
-heights_of_oper = (50, 60, 70, 80, 90)
-obs_grid_list = []
+heights_of_oper = [0] # [50, 60, 70, 80, 90]
+obs_grid_list = [None] * len(heights_of_oper)
 for i in range(0, len(heights_of_oper)):
-    obs_grid_list[i] = DetOccupancyGrid2D(grid_hi[0]-grid_lo[0],\
-                               grid_hi[1]-grid_lo[1],
-                               obstacles.section(heights_of_oper[i]))
+    print(obstacles.section(heights_of_oper[i]))
+    obs_grid_list[i] = DetOccupancyGrid2D(\
+                                grid_upper_right[0]-grid_lower_left[0],\
+                                grid_upper_right[1]-grid_lower_left[1],\
+                                obstacles.section(heights_of_oper[i]))
 
 # Initialize drones list at depot with empty delivery locations
 drones_list = []
@@ -49,9 +51,9 @@ for i in range(num_drones):
     
 # Pre-calculate A-star and Euclidean shortest paths for each height of operation
 # Note that this is the lookup table for both MILP and trajectory following
-paths_lookup = paths(grid_lower, grid_upper, heights, obs_grid_list, 
-                     depot_locs, delivery_locs)
-
+paths_lookup = paths(grid_lower_left, grid_upper_right,
+                    heights_of_oper, obs_grid_list, depot_locs, delivery_locs)
+'''
 while(True):
     # Run the world simulation here and break on error
     # Errors can be collision with obstacle OR out of charge, etc.
@@ -59,9 +61,9 @@ while(True):
     
     # run_milp
     run_milp(drones_list, delivery_list, depot_list, paths_lookup)
-    rollout_dynamics()
     
-
+    rollout_dynamics()
+'''
 '''    
 # TODO This list of delivery locations needs to come from MILP solution
 # TODO Need to implement a priority queue data structure somewhere

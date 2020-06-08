@@ -6,8 +6,8 @@ class depot(object):
         self.id = id
         # location is a 2D coordinate
         self.location = location
-        self.max_capacity = capacity
-        self.curr_capacity = 0
+        self.max_capacity = max_capacity
+        self.curr_capacity = curr_capacity
         self.task_list = task_list
         
     def add_drone(self):
