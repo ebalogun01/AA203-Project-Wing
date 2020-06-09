@@ -16,7 +16,8 @@ class dispatch:
         self.drone_track = drone_track
 
     def get_assignment(self, jobs):
-        # TODO need to include checking if particular drone is free for assignment; Jobs now include package weight
+        # TODO need to include checking if particular drone is free for assignment; Jobs should
+        #  now include package weight
         drone_states = np.empty((state_size, no_drones))
         drone_count = 0
         for key in self.drone_track.keys():
@@ -24,7 +25,7 @@ class dispatch:
             current_state = drone.return_state().T  # assumes it is a col vector so transposes to be a row since it makes for clearer matrix algebra
             drone_states[drone_count, ] = current_state
             drone_count += 1
-        assignment_matrix = cp.Variable((no_drones, no_drones), symmetric=True) # need two matrices because CVXPY does not let multiple properties for one var
+        assignment_matrix = cp.Variable((no_drones, no_drones), symmetric=True)  # no_drones X no_drones
         assignment_matrix2 = cp.Variable((no_drones, no_drones), boolean=True)
         cost_function = cp.sum(cp.norm(assignment_matrix * drone_states[:, 0:3] - jobs[:, 0:3], axis=1))
         drone_weights = drone_states[:, 3]
