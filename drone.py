@@ -1,7 +1,21 @@
-#TODO we need to convert A-star to inputs, A-star will give us. Keep track of the time it takes to get to the destination
+#TODO we need to convert A-star to inputs, A-star will give us.
+# Keep track of the time it takes to get to the destination
+# Note: We will be using the Hexacopter in the drone delivery papers since all properties and parameters are readily
+# available. Also, we will use linear approximation for the power consumed as a function of weight as this is
+# a reasonable approx. as long as our package weights don't go beyond the drone weight. Parameters are obtained per
+# Kevin Et. Al
+
 import numpy as np
 
+
+#
 dt = 1
+rho = 1.204  # kg/m^3
+rotor_blade_area = 0.2  # m^2 propeller blades effective area
+drone_weight = 1.5  # kg
+alpha = 46.7
+beta = 26.9
+
 
 class drone(object):
     def __init__(self,id,position,velocity,destination,weight,charge):
@@ -44,6 +58,7 @@ class drone(object):
         u = u + 0.1 * np.random.randint(2)
         self.velocity = np.maximum(np.minimum(self.velocity + dt * u, np.array([2,2,2])), np.array([-2,-2,-2]))
         self.position = self.position + dt * self.velocity
+        self.charge -= (alpha * self.weight + beta) * dt  # this constant power is consumed per time-step
         #self.position = np.rint(self.position)  # Round pos to nearest ints
 
 def rollout_dynamics(drones_list):
