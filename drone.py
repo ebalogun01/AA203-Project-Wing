@@ -44,7 +44,7 @@ class drone(object):
         self.destination = new_dest
 
     def return_state(self):
-        return np.vstack([self.position, self.velocity, self.charge, self.weight, self.id])
+        return np.vstack([self.position, self.weight, self.charge, self.id])
 
     #def constraints(self):
     #    self.charge[0] == self.initial_Q
@@ -59,6 +59,7 @@ class drone(object):
         self.velocity = np.maximum(np.minimum(self.velocity + dt * u, np.array([2,2,2])), np.array([-2,-2,-2]))
         self.position = self.position + dt * self.velocity
         self.charge -= (alpha * self.weight + beta) * dt  # this constant power is consumed per time-step
+        print(" Drone charge left is {}".format(self.charge))
         #self.position = np.rint(self.position)  # Round pos to nearest ints
 
 def rollout_dynamics(drones_list):

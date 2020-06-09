@@ -1,8 +1,10 @@
 import cvxpy as cp
 import numpy as np
-
 state_size = 6
 no_drones = 10
+drone_weight = 1.5  # kg
+alpha = 46.7
+beta = 26.9
 
 
 class dispatch:
@@ -14,7 +16,7 @@ class dispatch:
         self.drone_track = drone_track
 
     def get_assignment(self, jobs):
-        # TODO need to include checking if particular drone is free for assignment
+        # TODO need to include checking if particular drone is free for assignment; Jobs now include package weight
         drone_states = np.empty((state_size, no_drones))
         drone_count = 0
         for key in self.drone_track.keys():
@@ -24,9 +26,14 @@ class dispatch:
             drone_count += 1
         assignment_matrix = cp.Variable((no_drones, no_drones), symmetric=True) # need two matrices because CVXPY does not let multiple properties for one var
         assignment_matrix2 = cp.Variable((no_drones, no_drones), boolean=True)
-        cost_function = cp.sum(cp.norm(assignment_matrix * drone_states - jobs, axis=0))
+        cost_function = cp.sum(cp.norm(assignment_matrix * drone_states[:, 0:3] - jobs[:, 0:3], axis=1))
+        drone_weights = drone_states[:, 3]
+        package_weights = jobs[:, 3]
         constraints = [assignment_matrix @ np.ones((no_drones, 1)) == 1,
-                       assignment_matrix == assignment_matrix2]
+                       assignment_matrix == assignment_matrix2,
+                       assignment_matrix @ (alpha * (drone_weights + package_weights) + beta) * assignment_matrix *
+                       1.5 * (drone_states[:, 0:3] - jobs[:, 0:3]) <= assignment_matrix @ drone_states[:, 4]
+                       ]  # this includes battery constraint to ensure drone can service trip
         MILP_objective = cp.Minimize(cost_function)
         opt_problem = cp.Problem(MILP_objective, constraints)
         result = opt_problem.solve(solver=cp.MOSEK, verbose=True)
