@@ -61,7 +61,7 @@ class AStar(object):
         ########## Code starts here ##########
         return np.sqrt((x2[0]-x1[0])**2+(x2[1]-x1[1])**2)
         ########## Code ends here ##########
-        
+
     def actual_distance(self):
         return self.cost_to_arrive[self.x_init]
 
@@ -204,7 +204,7 @@ class DetOccupancyGrid2D(object):
         for obs in self.obstacles:
             inside = True
             for dim in range(len(x)):
-                if x[dim] < obs[0][dim] or x[dim] > obs[1][dim]:
+                if x[dim]+2 < obs[0][dim] or x[dim]-2 > obs[1][dim]:
                     inside = False
                     break
             if inside:
