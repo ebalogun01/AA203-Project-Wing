@@ -15,7 +15,7 @@ rotor_blade_area = 0.2  # m^2 propeller blades effective area
 drone_weight = 1.5  # kg
 alpha = 46.7
 beta = 26.9
-
+g = 9.81  # gravity
 
 class drone(object):
     def __init__(self,id,position,velocity,destination,weight,charge):
@@ -55,9 +55,11 @@ class drone(object):
         # Assume u is a 3x1 force vector
         # Apply wind disturbance to the control input force
         # Assume no disturbance (p=0.5), random disturbance (p = 0.5)
-        u = u + 0.1 * np.random.randint(2)
-        self.velocity = np.maximum(np.minimum(self.velocity + dt * u, np.array([2,2,2])), np.array([-2,-2,-2]))
+        self.velocity = self.velocity + dt * u / self.weight \
+                                   + dt * np.array([0, 0, -g])
         self.position = self.position + dt * self.velocity
+        if(self.position[2] < 0):
+            self.position[2] = 0
         self.charge -= (alpha * self.weight + beta) * dt  # this constant power is consumed per time-step
         print(" Drone charge left is {}".format(self.charge))
         #self.position = np.rint(self.position)  # Round pos to nearest ints
@@ -66,16 +68,25 @@ def rollout_dynamics(drones_list):
     # TODO: Add dynamics here
     for drone in drones_list:
         if drone.status >= 2:
-            curr_target = drone.path[drone.tracking_index]
-            u = 0.5 * (curr_target - drone.position) - 0.1 * (drone.velocity)
+            curr_target = drone.target_path[drone.tracking_index]
+            
+            kp = np.array([0.5, 0.5, 0.5])
+            kd = np.array([0.1, 0.1, 1])
+            u = np.multiply(kp, (curr_target - drone.position)) \
+                                                - np.multiply(kd, (drone.velocity))
+            u = u + np.array([0, 0, drone.weight*9.81]) + 0.1 * np.random.randint(2)
+            u = np.maximum(np.minimum(u, np.array([5, 5, 20])), np.array([-5, -5, 0]))
+
             drone.step(u)
+            print(drone.id, drone.position, drone.destination)
             dist_to_curr_target = np.linalg.norm(drone.position - curr_target)
-            dist_to_target = np.linalg.norm(drone.position - drone.path[len(drone.path)-1])
+            dist_to_target = np.linalg.norm(drone.position - drone.target_path[len(drone.target_path)-1])
             if dist_to_target < 0.1:
                 print("Drone ID: ", drone.id, " reached target")
-                drone.position = drone.path[len(drone.path)-1]
+                drone.position = drone.target_path[len(drone.target_path)-1]
+                drone.status = 0
                 break
-            if drone.tracking_index == len(drone.path)-1 or dist_to_curr_target > 3:
+            if drone.tracking_index == len(drone.target_path)-1 or dist_to_curr_target > 3:
                 continue
             else:
                 drone.tracking_index += 1

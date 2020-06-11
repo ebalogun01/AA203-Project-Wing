@@ -17,9 +17,9 @@ grid_height = 100
 
 # Obstacle footprints as corners of rectangles - bottom left, top right
 # The last element of each obstacle entry represents the height
-obstacle_footprints = [((3,0), (99,20), 50),
-                       ((3,3), (5,5),   60),
-                       ((1,10),(2,11),  70)]
+obstacle_footprints = [((5,0), (99,20), 50),
+                       ((5,3), (7,5),   60),
+                       ((5,10),(7,11),  70)]
 obstacles = obstacle(obstacle_footprints)
 
 # Assume single depot at (0,0) to start with
@@ -59,16 +59,16 @@ paths_lookup = paths(grid_lower_left, grid_upper_right,
                     heights_of_oper, obs_grid_list, depot_locs, delivery_locs)
 
 # Jobs list for task simulation in world sim
-# [[time, [list of tasks to add]]]
+# [[time, [list of tasks to add], package_weight]]
 # Make sure jobs are listed in increasing order of time here
 incoming_task_list = [
-    [1, [delivery_locs[0], delivery_locs[1]]],
-    [4, [delivery_locs[2], delivery_locs[3]]]
+    [1, delivery_locs[0], 5],
+    [4, delivery_locs[1], 5]
     ]
 task_list = []  # this stores the current list of active tasks in simulation
 
 time = 0
-max_time = 5
+max_time = 200
 while(True):
     # Run the world simulation here and break on error
     # Errors can be collision with obstacle OR out of charge, etc.
@@ -82,26 +82,30 @@ while(True):
     # Run Task Assignment Function
     # run_milp(available_drones, delivery_list, depot_list, paths_lookup)
     # For now, simulate assignment
-    drones_list[0].destination = delivery_locs[0]
-    
+    for i in range(0,2):
+        drone = drones_list[i]
+        drone.destination = delivery_locs[i]; drone.status = 2
+        depot_idx = np.where(depot_locs == drone.position[0:2])
+        delivery_idx = np.where(delivery_locs == drone.destination)
+        print(depot_idx, delivery_idx)
+        drone.target_path = paths_lookup.a_star_paths_[0].path_list[depot_idx][delivery_idx]
+        
     rollout_dynamics(drones_list)
     
     time += 1
     if time == max_time:
         print("Simulation Complete!")
         break
-
-
     
-'''    
+'''
 # TODO This list of delivery locations needs to come from MILP solution
 # TODO Need to implement a priority queue data structure somewhere
 
-for i in range(len(delivery_list)):
+for i in range(len(incoming_task_list)):
     for j in range(len(drones_list)):
         drone = drones_list[j]
         if(drone.status == 0): # drone does not have an active task and is free
-            drone.destination = delivery_list[i]
+            drone.destination = incoming_task_list[i][1]
             drone.status = 1
             break
 
@@ -109,39 +113,54 @@ for i in range(len(delivery_list)):
 for i in range(len(drones_list)):
     drone = drones_list[i]
     if(drone.status == 1):
-        A_star_ = AStar(grid_lo, grid_hi, tuple(drone.position[0:2].tolist()), \
-                        tuple(drone.destination.tolist()), obs_grid)
+        A_star_ = AStar(grid_lower_left, grid_upper_right, \
+                        tuple(drone.position[0:2].tolist()), \
+                        tuple(drone.destination.tolist()), obs_grid_list[0])
         A_star_.solve()
-        drone.path = A_star_.path
-        drone.path = np.asarray(drone.path, dtype = int)
-        drone.path = np.append(drone.path, np.zeros([len(drone.path),1]), 1)
+        drone.target_path = A_star_.path
+        drone.target_path = np.asarray(drone.target_path, dtype = int)
+        drone.target_path = np.append(drone.target_path, 50*np.ones([len(drone.target_path),1]), 1)
+        actual_dropoff = np.append(drone.target_path[-1][0:2],0)
+        actual_dropoff = np.reshape(actual_dropoff, (-1,3))
+        print(actual_dropoff)
+        drone.target_path = np.append(drone.target_path, actual_dropoff, axis = 0)
+        print("Target path len: ", len(drone.target_path))
         # print("Drone ID: ", drone.id, " path ", drone.path)
         
-# TODO implement trajectory following drone dynamics with some wind noise
+# Trajectory following implementation with wind noise
 drone = drones_list[0]
 actual_path = np.empty([0,3])
 actual_velocity = np.empty([0,3])
+actual_u = np.empty([0,3])
 index = 1
-while(True):
+# while(True):
+for t in range(0,2000):
     actual_path = np.append(actual_path, drone.position.reshape([1,3]), axis = 0)
     actual_velocity = np.append(actual_velocity, drone.velocity.reshape([1,3]), axis = 0)
-    curr_target = drone.path[index]
-    u = 0.5 * (curr_target - drone.position) - 0.1 * (drone.velocity)
+    curr_target = drone.target_path[index]
+    kp = np.array([0.5, 0.5, 0.5])
+    kd = np.array([0.1, 0.1, 1])
+    u = np.multiply(kp, (curr_target - drone.position)) \
+                                        - np.multiply(kd, (drone.velocity))
+    u = u + np.array([0, 0, drone.weight*9.81]) + 0.1 * np.random.randint(2)
+    u = np.maximum(np.minimum(u, np.array([5, 5, 20])), np.array([-5, -5, 0]))                                  
+    actual_u = np.append(actual_u, u.reshape([1,3]), axis = 0)
     drone.step(u)
     dist_to_curr_target = np.linalg.norm(drone.position - curr_target)
     print(curr_target, drone.position, dist_to_curr_target)
-    dist_to_target = np.linalg.norm(drone.position - drone.path[len(drone.path)-1])
+    dist_to_target = np.linalg.norm(drone.position - drone.target_path[-1])
     if dist_to_target < 0.1:
         print("Reached target")
-        drone.position = drone.path[len(drone.path)-1]
+        drone.position = drone.target_path[-1]
         break
-    if index == len(drone.path)-1 or dist_to_curr_target > 3:
+    if index == len(drone.target_path)-1 or dist_to_curr_target > 3:
         continue
     else:
         index += 1    
 
 # TODO: remove later, for debugging only   
-np.savetxt("target_path.txt", drone.path)
+np.savetxt("target_path.txt", drone.target_path)
 np.savetxt("actual_path.txt", actual_path) 
 np.savetxt("actual_vel.txt", actual_velocity)
+np.savetxt("actual_u.txt", actual_u)
 '''
