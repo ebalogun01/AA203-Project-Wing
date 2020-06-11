@@ -1,6 +1,7 @@
 # Simple depot class implementing depot location, capacity and task_list
 
-class depot(object):
+
+class Depot(object):
     def __init__(self, id, location, max_capacity = 100, 
                  curr_capacity = 0, task_list = []):
         self.id = id
@@ -12,13 +13,13 @@ class depot(object):
         
     def add_drone(self):
         if self.curr_capacity == self.max_capacity:
-            print("Error adding drone at depot id: ", id)
+            print("Error adding drone at depot ID: ", id)
         self.curr_capacity += 1
         return 
     
     def remove_drone(self):
         if self.curr_capacity == 0:
-            print("Error removing drone at depot id: ", id)
+            print("Error removing drone at depot ID: ", id)
         self.curr_capacity -= 1
         
     '''

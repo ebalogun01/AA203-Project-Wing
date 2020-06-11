@@ -7,7 +7,7 @@ alpha = 46.7
 beta = 26.9
 
 
-class dispatch:
+class Dispatch:
     def __init__(self, drones_list):
         self.drones_list = drones_list
         drone_track = {}
@@ -17,17 +17,18 @@ class dispatch:
 
     def get_assignment(self, jobs):
         # TODO need to include checking if particular drone is free for assignment; Jobs should
-        #  now include package weight
+        #  now include package weight. If the drone cannot make it in a depot in time
         drone_states = np.empty((state_size, no_drones))
         drone_count = 0
-        for key in self.drone_track.keys():
-            drone = self.drone_track[key]
+        available_drones = self.available()
+        for drone in available_drones:
             current_state = drone.return_state().T  # assumes it is a col vector so transposes to be a row since it makes for clearer matrix algebra
             drone_states[drone_count, ] = current_state
             drone_count += 1
-        assignment_matrix = cp.Variable((no_drones, no_drones), symmetric=True)  # no_drones X no_drones
-        assignment_matrix2 = cp.Variable((no_drones, no_drones), boolean=True)
+        assignment_matrix = cp.Variable((drone_count, drone_count), symmetric=True)  # no_drones X no_drones
+        assignment_matrix2 = cp.Variable((drone_count, drone_count), boolean=True)
         cost_function = cp.sum(cp.norm(assignment_matrix * drone_states[:, 0:3] - jobs[:, 0:3], axis=1))
+        cost_fun =
         drone_weights = drone_states[:, 3]
         package_weights = jobs[:, 3]
         constraints = [assignment_matrix @ np.ones((no_drones, 1)) == 1,
@@ -42,6 +43,53 @@ class dispatch:
         return assignment_matrix.value, drone_states
         # NOW WE CAN ASSIGN JOBS MULTIPLE WAYS
 
+    def get_assignments_astar(self, task_list, delivery_list, depot_list, paths):
+        """fill in matrix of distances, d let the drones that are at depot be m1, drones in transit to depot be m2
+        let number of depots be p the number of rows of distance matrix should be (m1 + m2 * p)"""
+        available_drones = self.available()
+        m1 = 0
+        m2 = 0
+        for drone in available_drones:
+            if drone.status == 0:
+                m1 += 1
+            else:
+                m2 += 1
+        m = m1 + m2 * len(depot_list)
+        n = len(task_list)
+        d = np.zeros((m, n))
+        for i, drone in available_drones:
+            for j, task in task_list:
+                delivery_idx = delivery_list.index(task)
+                if drone.status == 0:  # drone is at depot waiting for task
+                    # Assume lowest height for now
+                    depot_idx = depot_list.index(drone.position)
+                    d[i, j] = paths.a_star_paths_[0].path_list[depot_idx][delivery_idx]
+                elif drone.status == 4:  # drone is on way back to depot
+                    for depot in depot_list:
+                        # Need to use Euclidean distance to depot here
+                        # since the drone is in-transit, cannot lookup distance from paths
+                        dist_to_depot = np.linalg.norm(drone.position[0:2] - depot.location)
+                        dist_to_task = paths.a_star_paths_[0].path_list[depot.id][delivery_idx]
+                        d = dist_to_depot + dist_to_task
+                        if d[i, j] == 0 or d < d[i, j]:
+                            d[i, j] = d
+
+        ## CVX solve
+        X = cp.Variable(m, n, boolean=True)
+        cost = cp.sum(cp.multiply(X, d))
+        constraints = [cp.sum(X, axis=0) <= 1, cp.sum(X, axis=1) <= 1]
+        p = cp.Problem(cp.Minimize(cost), constraints)
+        p.solve()
+
+        ## return list of assignment pairs
+        X_val = X.value
+        assignments = []
+        for i in range(m):
+            j = np.argwhere(X_val[i, :] > 0)
+            if j.shape[0] > 0:
+                assignments.append((j[0, 0], available_drones[i].id))
+        return assignments
+
     def assign_tasks(self, jobs):
         A_matrix, drone_states = self.get_assignment(jobs)
         drone_assign = A_matrix @ drone_states
@@ -49,10 +97,13 @@ class dispatch:
             drone_with_task = drone_assign[i, ]
             drone_id = drone_with_task[-1]
             drone = self.drone_track[drone_id]
+            drone.status = 1
             drone.task = jobs[i, ]  # this contains coordinates of job destination for that drone
+            self.drone_track[drone_id] = drone  # this is just to be double-sure that drone is updated.
 
     def updated_drones_dict(self):
-        # TODO will the drones stored in dictionary need to be updated?
+
+        # TODO will the drones stored in dictionary need to be updated? probably not
         pass
 
     def available(self):
