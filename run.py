@@ -22,13 +22,13 @@ obstacle_footprints = [((5, 0), (99, 20), 50),
 obstacles = obstacle(obstacle_footprints)
 
 # Assume single depot at (0,0) to start with
-depot_locs = np.array([[0, 0], [90, 10]])
+depot_locs = np.array([[0, 0, 0], [90, 10, 0]])
 depot_list = [None] * len(depot_locs)
 for i in range(0, len(depot_locs)):
     depot_list[i] = Depot(i, depot_locs[i])
 
 # List of all delivery locations
-delivery_locs = np.array([[99, 50], [3, 99], [98, 98], [97, 97]])
+delivery_locs = np.array([[99, 50, 0], [3, 99, 0], [98, 98, 0], [97, 97, 0]])
 
 num_drones = 10
 
@@ -44,14 +44,18 @@ for i in range(0, len(heights_of_oper)):
 # Initialize drones list at depot with empty delivery locations
 drones_list = []
 for i in range(num_drones):
-    init_position = np.append(depot_locs[0], 0)  # Append the initial Z height of the drone
+    init_position = depot_locs[0] # Append the initial Z height of the drone
     init_velocity = np.array([0, 0, 0])
     new_drone = Drone(i, init_position, init_velocity, [], 1, 100)
     drones_list.append(new_drone)
 
 # Initialize dispatch
-dispatch = Dispatch(drones_list)
-
+dispatch = Dispatch(drones_list, depot_list)
+jobs = np.array([[1, 1, 0, 50, "001"],
+                 [3, 3, 0, 30, "002"],
+                 [10, 10, 0, 10, "003"],
+                 [15, 18, 0, 2, "004"]])
+dispatch.get_assignment(jobs)
 # Pre-calculate A-star and Euclidean shortest paths for each height of operation
 # Note that this is the lookup table for both MILP and trajectory following
 paths_lookup = paths(grid_lower_left, grid_upper_right,

@@ -46,7 +46,7 @@ class Drone(object):
         self.destination = new_dest
 
     def return_state(self):
-        return np.vstack([self.position, self.weight, self.charge, self.id])
+        return np.hstack([self.position, self.weight, self.charge, self.id])
 
     def step(self, u):
         # Assume u is a 3x1 force vector
