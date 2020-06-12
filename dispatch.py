@@ -1,6 +1,8 @@
 import cvxpy as cp
 import numpy as np
+
 state_size = 6
+depot_info_size = 4
 no_drones = 10
 drone_weight = 1.5  # kg
 alpha = 46.7
@@ -8,40 +10,88 @@ beta = 26.9
 
 
 class Dispatch:
-    def __init__(self, drones_list):
+    def __init__(self, drones_list, depots_list):
         self.drones_list = drones_list
+        self.depots_list = depots_list
         drone_track = {}
+        depot_track = {}
         for drone in self.drones_list:
             drone_track[drone.id] = drone
         self.drone_track = drone_track
+        for depot in depots_list:
+            depot_track[depot.id] = depot
+        self.depot_track = depot_track
 
     def get_assignment(self, jobs):
-        # TODO need to include checking if particular drone is free for assignment; Jobs should
-        #  now include package weight. If the drone cannot make it in a depot in time
+        # TODO this allows all drones possibilities to go to any depot
+        jobs_count = jobs.size[1]
+        depot_states = np.empty((depot_info_size, len(self.depots_list)))
         drone_states = np.empty((state_size, no_drones))
+
         drone_count = 0
+        depot_count = 0
         available_drones = self.available()
+
         for drone in available_drones:
             current_state = drone.return_state().T  # assumes it is a col vector so transposes to be a row since it makes for clearer matrix algebra
             drone_states[drone_count, ] = current_state
             drone_count += 1
+
+        for depot in self.depots_list:
+            depot_info = depot.get_depot_info()
+            depot_states[depot_count, ] = depot_info
+            depot_count += 1
+
+        depot_loc_withID = np.tile(depot_states, no_drones).T
+        depot_loc = depot_loc_withID[:, 0:4]
+
         assignment_matrix = cp.Variable((drone_count, drone_count), symmetric=True)  # no_drones X no_drones
         assignment_matrix2 = cp.Variable((drone_count, drone_count), boolean=True)
-        cost_function = cp.sum(cp.norm(assignment_matrix * drone_states[:, 0:3] - jobs[:, 0:3], axis=1))
-        cost_fun =
+        depot_assigment = cp.Variable((drone_count, depot_loc.size[0]), boolean=True)
+
+        if drone_count > jobs_count:  # handles case where there are more drones than jobs
+            drone_surplus = drone_count - jobs_count
+            padding = np.repeat(np.array([0, 0, 0, 0]), drone_surplus)
+            padding = np.reshape(padding, (drone_surplus, 4))
+            jobs = np.vstack([jobs, padding])
+        else:
+            jobs = jobs[0:drone_count, :]
+            no_jobs = jobs.shape[0]
+
+        # cost_function = cp.sum(cp.norm(assignment_matrix * drone_states[:, 0:3] - jobs[:, 0:3], axis=1))
+        cost_function = cp.sum(cp.norm(assignment_matrix * drone_states[:, 0:3] - depot_assigment * depot_loc, axis=1) +
+                               cp.norm(depot_assigment * depot_loc - jobs[:, 0:3], axis=1))
         drone_weights = drone_states[:, 3]
         package_weights = jobs[:, 3]
         constraints = [assignment_matrix @ np.ones((no_drones, 1)) == 1,
                        assignment_matrix == assignment_matrix2,
                        assignment_matrix @ (alpha * (drone_weights + package_weights) + beta) * assignment_matrix *
-                       1.5 * (drone_states[:, 0:3] - jobs[:, 0:3]) <= assignment_matrix @ drone_states[:, 4]
+                       1.5 * (drone_states[:, 0:3] - jobs[:, 0:3]) <= assignment_matrix @ drone_states[:, 4],
+                       cp.sum(depot_assigment, axis=0) <= 1, cp.sum(depot_assigment, axis=1) <= 1
                        ]  # this includes battery constraint to ensure drone can service trip
         MILP_objective = cp.Minimize(cost_function)
         opt_problem = cp.Problem(MILP_objective, constraints)
         result = opt_problem.solve(solver=cp.MOSEK, verbose=True)
+        if opt_problem.status != 'optimal':
+            print("Cannot dispatch all drones, removing min SOC drone")
+            return
         print(opt_problem.status)
-        return assignment_matrix.value, drone_states
+        return no_jobs, assignment_matrix.value, drone_states, depot_assigment.value * depot_loc_withID
         # NOW WE CAN ASSIGN JOBS MULTIPLE WAYS
+
+    def assign_tasks(self, jobs):  # Jobs should be an np array
+        no_jobs, A_matrix, drone_states, assigned_depots = self.get_assignment(jobs)
+        drone_assign = A_matrix @ drone_states
+        for i in range(min(no_drones, no_jobs)):
+            drone_with_task = drone_assign[i,]
+            depot_for_drone = assigned_depots[i,]
+            drone_id = drone_with_task[-1]
+            depot_id = depot_for_drone[-1]
+            drone = self.drone_track[drone_id]
+            drone.status = 1
+            drone.task = jobs[i,]  # this contains coordinates of job destination for that drone
+            drone.pickup_depot = self.depot_track[depot_id]
+            self.drone_track[drone_id] = drone  # this is just to be double-sure that drone is updated.
 
     def get_assignments_astar(self, task_list, delivery_list, depot_list, paths):
         """fill in matrix of distances, d let the drones that are at depot be m1, drones in transit to depot be m2
@@ -90,20 +140,11 @@ class Dispatch:
                 assignments.append((j[0, 0], available_drones[i].id))
         return assignments
 
-    def assign_tasks(self, jobs):
-        A_matrix, drone_states = self.get_assignment(jobs)
-        drone_assign = A_matrix @ drone_states
-        for i in range(no_drones):
-            drone_with_task = drone_assign[i, ]
-            drone_id = drone_with_task[-1]
-            drone = self.drone_track[drone_id]
-            drone.status = 1
-            drone.task = jobs[i, ]  # this contains coordinates of job destination for that drone
-            self.drone_track[drone_id] = drone  # this is just to be double-sure that drone is updated.
-
     def updated_drones_dict(self):
-
         # TODO will the drones stored in dictionary need to be updated? probably not
+        pass
+
+    def remove_minSOC_drone(self):
         pass
 
     def available(self):

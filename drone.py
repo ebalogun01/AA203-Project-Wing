@@ -29,6 +29,7 @@ class Drone(object):
         self.tracking_index = None  # needed for traj following
         self.status = 0  # 0: free, 1: wait_path 2: to_dest, 3: to_charg, 4: to_depot
         self.task = None
+        self.pickup_depot = None
 
         # define variables to store the history for plotting
         self.u_history = None
@@ -46,11 +47,6 @@ class Drone(object):
 
     def return_state(self):
         return np.vstack([self.position, self.weight, self.charge, self.id])
-
-    # def constraints(self):
-    #    self.charge[0] == self.initial_Q
-    #    self.charge[1:n] = self.charge[0:n-1] - self.weight * gamma - lamda * u
-    #    self.charge >= 0
 
     def step(self, u):
         # Assume u is a 3x1 force vector
