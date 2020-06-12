@@ -83,12 +83,11 @@ class Dispatch:
             print("Cannot dispatch all drones, removing min SOC drone")
             return
         print(opt_problem.status)
-        return no_jobs, assignment_matrix.value, drone_states, depot_assigment.value @ depot_loc_withID
+        return no_jobs, assignment_matrix.value @ drone_states, depot_assigment.value @ depot_loc_withID
         # NOW WE CAN ASSIGN JOBS MULTIPLE WAYS
 
     def assign_tasks(self, jobs):  # Jobs should be an np array
-        no_jobs, A_matrix, drone_states, assigned_depots = self.get_assignment(jobs)
-        drone_assign = A_matrix @ drone_states
+        no_jobs, drone_assign, drone_states, assigned_depots = self.get_assignment(jobs)
         for i in range(min(no_drones, no_jobs)):
             drone_with_task = drone_assign[i, ]
             depot_for_drone = assigned_depots[i, ]
