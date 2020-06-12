@@ -1,4 +1,4 @@
-# This will be used to generate grid, assign drone paths, set expected offline 
+# This will be used to generate grid, assign drone paths, set expected offline
 # costs (which will change online)
 import numpy as np
 from astar import DetOccupancyGrid2D
@@ -85,8 +85,8 @@ while True:
         drone = drones_list[i]
         drone.destination = delivery_locs[i]
         drone.status = 2
-        depot_idx = np.where(depot_locs == drone.position[0:2])
-        delivery_idx = np.where(delivery_locs == drone.destination)
+        depot_idx = depot_locs.tolist().index(drone.position[0:2].tolist())
+        delivery_idx = delivery_locs.tolist().index(drone.destination.tolist())
         print(depot_idx, delivery_idx)
         drone.target_path = paths_lookup.a_star_paths_[0].path_list[depot_idx][delivery_idx]
 
@@ -126,7 +126,7 @@ for i in range(len(drones_list)):
         drone.target_path = np.append(drone.target_path, actual_dropoff, axis = 0)
         print("Target path len: ", len(drone.target_path))
         # print("Drone ID: ", drone.ID, " path ", drone.path)
-        
+
 # Trajectory following implementation with wind noise
 drone = drones_list[0]
 actual_path = np.empty([0,3])
@@ -143,7 +143,7 @@ for t in range(0,2000):
     u = np.multiply(kp, (curr_target - drone.position)) \
                                         - np.multiply(kd, (drone.velocity))
     u = u + np.array([0, 0, drone.weight*9.81]) + 0.1 * np.random.randint(2)
-    u = np.maximum(np.minimum(u, np.array([5, 5, 20])), np.array([-5, -5, 0]))                                  
+    u = np.maximum(np.minimum(u, np.array([5, 5, 20])), np.array([-5, -5, 0]))
     actual_u = np.append(actual_u, u.reshape([1,3]), axis = 0)
     drone.step(u)
     dist_to_curr_target = np.linalg.norm(drone.position - curr_target)
@@ -156,11 +156,11 @@ for t in range(0,2000):
     if index == len(drone.target_path)-1 or dist_to_curr_target > 3:
         continue
     else:
-        index += 1    
+        index += 1
 
-# TODO: remove later, for debugging only   
+# TODO: remove later, for debugging only
 np.savetxt("target_path.txt", drone.target_path)
-np.savetxt("actual_path.txt", actual_path) 
+np.savetxt("actual_path.txt", actual_path)
 np.savetxt("actual_vel.txt", actual_velocity)
 np.savetxt("actual_u.txt", actual_u)
 '''
