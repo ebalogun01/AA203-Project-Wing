@@ -8,6 +8,8 @@ from obstacle import obstacle
 from depot import Depot
 from dispatch import Dispatch
 from helper import update_tasks, assign_paths
+from visualization import plot_path
+import matplotlib.pyplot as plt
 
 # Grid Parameters
 grid_size = 100
@@ -17,13 +19,15 @@ grid_height = grid_size
 
 # Obstacle footprints as corners of rectangles - bottom left, top right
 # The last element of each obstacle entry represents the height
-obstacle_footprints = [((5, 0), (99, 20), 50),
-                       ((5, 3), (7, 5), 60),
-                       ((5, 10), (7, 11), 70)]
+obstacle_footprints = [((10, 5), (50, 20), 50),
+                       ((65, 15), (75, 30), 50),
+                       ((25, 30), (30, 45), 60),
+                       ((35, 60), (60, 80), 60),
+                       ((75, 50), (90, 60), 70)]
 obstacles = obstacle(obstacle_footprints)
 
 # Assume single depot at (0,0) to start with
-depot_locs = np.array([[0, 0, 0], [90, 10, 0]])
+depot_locs = np.array([[0, 0, 0], [50, 45, 0]])
 depot_list = [None] * len(depot_locs)
 for i in range(0, len(depot_locs)):
     depot_list[i] = Depot(i, depot_locs[i])
@@ -59,7 +63,7 @@ jobs = np.array([[1, 1, 0, 0.6, "001"],
                  [10, 10, 0, 0.7, "003"],
                  [15, 18, 0, 0.3, "004"]])
 # Temporary - Updating just to get run.py to compile
-jobs = np.array([[99, 50, 0, 0.5, 1], 
+jobs = np.array([[99, 50, 0, 0.5, 1],
                  [3, 99, 0, 0.7, 2]])
 
 # Initialize pending_jobs
@@ -74,22 +78,26 @@ for time in range(0, max_time):
     print("Time: ", time)
 
     # Randomly add random jobs to the pending job list with probability 0.2
-    pending_jobs = update_tasks(pending_jobs, grid_lower_left, grid_upper_right, 
+    pending_jobs = update_tasks(pending_jobs, grid_lower_left, grid_upper_right,
                                 obstacle_footprints, depot_locs)
 
-    print("Number of available drones: ", len(dispatch.available()), 
-          "charging drones: ", len(dispatch.charging_drones()), 
+    print("Number of available drones: ", len(dispatch.available()),
+          "charging drones: ", len(dispatch.charging_drones()),
           "in-transit drones: ", len(dispatch.intransit_drones()))
 
     # Run Task Assignment Function
     if time == 0:
         dispatch.assign_tasks(jobs)
-    
+
     # Assign paths to drones with status = 2
-    assign_paths(drones_list, depot_list, paths_lookup, 
+    assign_paths(drones_list, depot_list, paths_lookup,
                           grid_lower_left, grid_upper_right, obs_grid_list[1])
 
     drones_list = rollout_dynamics(drones_list)
+    plot_path(drones_list,depot_list,obs_grid_list[0])
+    plt.draw()
+    plt.pause(.001)
+    plt.close(1)
 
     time += 1
     if time == max_time:
