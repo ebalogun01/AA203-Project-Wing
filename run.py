@@ -88,8 +88,10 @@ for time in range(0, max_time):
           "in-transit drones: ", len(dispatch.intransit_drones()))
 
     # Run Task Assignment Function
-    if time == 0:
-        dispatch.assign_tasks(jobs)
+    # if time == 0:
+    print("pending jobs length is: {}".format(pending_jobs.shape[0]))
+    pending_jobs = dispatch.assign_tasks(pending_jobs)
+    print("pending jobs length is: {}".format(pending_jobs.shape[0]))
 
     # Assign paths to drones with status = 2
     assign_paths(drones_list, depot_list, paths_lookup,

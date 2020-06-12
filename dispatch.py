@@ -85,6 +85,8 @@ class Dispatch:
         # NOW WE CAN ASSIGN JOBS MULTIPLE WAYS
 
     def assign_tasks(self, jobs):  # Jobs should be an np array
+        if jobs.size == 0:
+            return jobs
         no_jobs, no_drones, drone_assign, assigned_depots = self.get_assignment(jobs)
         for i in range(min(no_drones, no_jobs)):
             drone_with_task = drone_assign[i, ]
@@ -95,6 +97,8 @@ class Dispatch:
             drone.status = 2
             drone.task = jobs[i, ]  # this contains coordinates of job destination and job ID for that drone
             drone.pickup_depot = self.depot_track[depot_id]
+        jobs = np.delete(jobs, range(i + 1), axis=0)
+        return jobs
 
     def get_assignments_astar(self, task_list, delivery_list, depot_list, paths):
         """fill in matrix of distances, d let the drones that are at depot be m1, drones in transit to depot be m2
