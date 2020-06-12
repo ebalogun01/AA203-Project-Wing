@@ -15,10 +15,12 @@ drone_weight = 1.5  # kg
 alpha = 46.7
 beta = 26.9
 g = 9.81  # gravity
+max_charge = 100  # max charge for each drone
+charge_thresh = 60  # charge threshold (for recharge decision)
 
 
 class Drone(object):
-    def __init__(self, ID, position, velocity, destination, weight, charge):
+    def __init__(self, ID, position, velocity, destination, weight, charge = max_charge):
         self.id = ID  # ID number to distinguish b/w drones
         self.position = position  # position (x,y,z) of drone center w.r.t. the map
         self.velocity = velocity  # velocity (vx,vy,vz) of the drone
@@ -60,7 +62,8 @@ class Drone(object):
         self.position = self.position + dt * self.velocity
         if self.position[2] < 0:
             self.position[2] = 0
-        self.charge -= (alpha * self.weight + beta) * dt  # this constant power is consumed per time-step
+        # rate of discharge is proportional to Z force u[3]
+        self.charge -= (alpha * u[3] + beta) * dt
         print(" Drone charge left is {}".format(self.charge))
         # self.position = np.rint(self.position)  # Round pos to nearest ints
 
@@ -68,7 +71,12 @@ class Drone(object):
 def rollout_dynamics(drones_list):
     # TODO: Add dynamics here
     for drone in drones_list:
-        if drone.status >= 2:
+        if drone.status == 1:  # at depot charging
+            drone.charge += 5
+            if drone.charge >= max_charge:
+                drone.charge = max_charge
+                drone.status = 0
+        elif drone.status == 3:  # in-transit
             curr_target = drone.target_path[drone.tracking_index]
 
             kp = np.array([0.5, 0.5, 0.5])
@@ -82,12 +90,19 @@ def rollout_dynamics(drones_list):
             print(drone.id, drone.position, drone.destination)
             dist_to_curr_target = np.linalg.norm(drone.position - curr_target)
             dist_to_target = np.linalg.norm(drone.position - drone.target_path[len(drone.target_path) - 1])
-            if dist_to_target < 0.1:
+            if dist_to_target < 0.5:
                 print("Drone ID: ", drone.id, " reached target")
                 drone.position = drone.target_path[len(drone.target_path) - 1]
-                drone.status = 0
+                if drone.weight > drone_weight:  # drone has package, drop it
+                    drone.weight = drone_weight
+                    drone.status = 4  # at delivery free
+                elif drone.charge <= charge_thresh:
+                    drone.status = 1  # at depot charging
+                else:
+                    drone.status = 0  # at depot free
                 break
             if drone.tracking_index == len(drone.target_path) - 1 or dist_to_curr_target > 3:
                 continue
             else:
                 drone.tracking_index += 1
+    return drones_list

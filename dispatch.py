@@ -160,13 +160,3 @@ class Dispatch:
             if drone.status == 0 or drone.status == 4:
                 available_drones.append(drone)
         return available_drones
-
-
-def update_tasks(time, incoming_task_list, task_list):
-    if incoming_task_list[0][0] == time:
-        temp_list = incoming_task_list.pop(0)
-        temp_list = temp_list[1]
-        for i in range(0, len(temp_list)):
-            task_list.append(temp_list[i])
-            print("Assigned task")
-    return

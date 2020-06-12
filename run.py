@@ -5,14 +5,15 @@ from astar import DetOccupancyGrid2D
 from astar import AStar
 from drone import Drone, rollout_dynamics
 from obstacle import obstacle
-from paths import paths
 from depot import Depot
-from dispatch import Dispatch, update_tasks
+from dispatch import Dispatch
+from helper import update_tasks, assign_paths
 
 # Grid Parameters
+grid_size = 100
 grid_lower_left = (0, 0)
-grid_upper_right = (100, 100)
-grid_height = 100
+grid_upper_right = (grid_size, grid_size)
+grid_height = grid_size
 
 # Obstacle footprints as corners of rectangles - bottom left, top right
 # The last element of each obstacle entry represents the height
@@ -33,7 +34,7 @@ delivery_locs = np.array([[99, 50, 0], [3, 99, 0], [98, 98, 0], [97, 97, 0]])
 num_drones = 10
 
 # Define grid sections according to heights of operation in 2D
-heights_of_oper = [0]  # [50, 60, 70, 80, 90]
+heights_of_oper = [0, 50]  # [50, 60, 70, 80, 90]
 obs_grid_list = [None] * len(heights_of_oper)
 for i in range(0, len(heights_of_oper)):
     obs_grid_list[i] = DetOccupancyGrid2D(
@@ -51,50 +52,42 @@ for i in range(num_drones):
 
 # Initialize dispatch
 dispatch = Dispatch(drones_list, depot_list)
+
+# jobs entries are of the format [x_loc, y_loc, z_loc, package_weight, job_id]
 jobs = np.array([[1, 1, 0, 50, "001"],
                  [3, 3, 0, 30, "002"],
                  [10, 10, 0, 10, "003"],
                  [15, 18, 0, 2, "004"]])
-dispatch.get_assignment(jobs)
-# Pre-calculate A-star and Euclidean shortest paths for each height of operation
-# Note that this is the lookup table for both MILP and trajectory following
-paths_lookup = paths(grid_lower_left, grid_upper_right,
-                     heights_of_oper, obs_grid_list, depot_locs, delivery_locs)
+# Temporary - Updating just to get run.py to compile
+jobs = np.array([[1, 1, 0, 50, 1],
+                 [3, 3, 0, 30, 2],
+                 [10, 10, 0, 10, 3],
+                 [15, 18, 0, 2, 4]])
+# Initialize pending_jobs
+pending_jobs = jobs
 
-# Jobs list for task simulation in world sim
-# [[time, [list of tasks to add], package_weight]]
-# Make sure jobs are listed in increasing order of time here
-incoming_task_list = [
-    [1, delivery_locs[0], 5],
-    [4, delivery_locs[1], 5]
-]
-task_list = []  # this stores the current list of active tasks in simulation
+paths_lookup = [[None] * grid_size * grid_size] * (grid_size * grid_size)
 
-time = 0
-max_time = 200
-while True:
+max_time = 1
+for time in range(0, max_time):
     # Run the world simulation here and break on error
     # Errors can be collision with obstacle OR out of charge, etc.
     print("Time: ", time)
 
-    update_tasks(time, incoming_task_list, task_list)
+    # Randomly add random jobs to the pending job list with probability 0.2
+    pending_jobs = update_tasks(pending_jobs, grid_lower_left, grid_upper_right, 
+                                obstacle_footprints, depot_locs)
 
-    available_drones = dispatch.available()
-    print("Number of available drones: ", len(available_drones))
+    print("Number of available drones: ", len(dispatch.available()))
 
     # Run Task Assignment Function
-    # run_milp(available_drones, delivery_list, depot_list, paths_lookup)
-    # For now, simulate assignment
-    for i in range(0, 2):
-        drone = drones_list[i]
-        drone.destination = delivery_locs[i]
-        drone.status = 2
-        depot_idx = depot_locs.tolist().index(drone.position[0:2].tolist())
-        delivery_idx = delivery_locs.tolist().index(drone.destination.tolist())
-        print(depot_idx, delivery_idx)
-        drone.target_path = paths_lookup.a_star_paths_[0].path_list[depot_idx][delivery_idx]
+    dispatch.get_assignment(jobs)
+    
+    # Assign paths to drones with status = 2
+    assign_paths(drones_list, paths_lookup, 
+                          grid_lower_left, grid_upper_right, obs_grid_list[1])
 
-    rollout_dynamics(drones_list)
+    drones_list = rollout_dynamics(drones_list)
 
     time += 1
     if time == max_time:
