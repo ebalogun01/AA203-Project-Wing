@@ -44,8 +44,9 @@ for i in range(0, len(heights_of_oper)):
 
 # Initialize drones list at depot with empty delivery locations
 drones_list = []
+vary_pos = np.array([4, 5, 0])
 for i in range(num_drones):
-    init_position = depot_locs[0] # Append the initial Z height of the drone
+    init_position = depot_locs[0] + i * vary_pos  # Append the initial Z height of the drone
     init_velocity = np.array([0, 0, 0])
     new_drone = Drone(i, init_position, init_velocity, [], 1, 100)
     drones_list.append(new_drone)
@@ -54,15 +55,15 @@ for i in range(num_drones):
 dispatch = Dispatch(drones_list, depot_list)
 
 # jobs entries are of the format [x_loc, y_loc, z_loc, package_weight, job_id]
-jobs = np.array([[1, 1, 0, 50, "001"],
-                 [3, 3, 0, 30, "002"],
-                 [10, 10, 0, 10, "003"],
-                 [15, 18, 0, 2, "004"]])
+jobs = np.array([[1, 1, 0, 0.6, "001"],
+                 [3, 3, 0, 0.8, "002"],
+                 [10, 10, 0, 0.7, "003"],
+                 [15, 18, 0, 0.3, "004"]])
 # Temporary - Updating just to get run.py to compile
-jobs = np.array([[1, 1, 0, 50, 1],
-                 [3, 3, 0, 30, 2],
-                 [10, 10, 0, 10, 3],
-                 [15, 18, 0, 2, 4]])
+jobs = np.array([[1, 1, 0, 0.5, 1],
+                 [3, 3, 0, 0.3, 2],
+                 [10, 10, 0, 0.1, 3],
+                 [15, 18, 0, 0.2, 4]])
 # Initialize pending_jobs
 pending_jobs = jobs
 
@@ -81,7 +82,7 @@ for time in range(0, max_time):
     print("Number of available drones: ", len(dispatch.available()))
 
     # Run Task Assignment Function
-    dispatch.get_assignment(jobs)
+    dispatch.assign_tasks(jobs)
     
     # Assign paths to drones with status = 2
     assign_paths(drones_list, paths_lookup, 

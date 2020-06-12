@@ -3,8 +3,7 @@ import numpy as np
 
 state_size = 6
 depot_info_size = 4
-no_drones = 10
-drone_weight = 1.5  # kg
+# drone_weight = 1.5  # kg
 alpha = 46.7
 beta = 26.9
 
@@ -27,11 +26,11 @@ class Dispatch:
         dim = 3
         jobs_count = jobs.shape[0]
         depot_states = np.empty((len(self.depots_list), depot_info_size))
-        drone_states = np.empty((no_drones, state_size))
+        available_drones = self.available()
+        drone_states = np.empty((len(available_drones), state_size))
 
         drone_count = 0
         depot_count = 0
-        available_drones = self.available()
 
         for drone in available_drones:
             current_state = drone.return_state()  # assumes it is a row
@@ -43,7 +42,7 @@ class Dispatch:
             depot_states[depot_count, ] = depot_info
             depot_count += 1
 
-        depot_loc_withID = np.repeat(depot_states, repeats=no_drones, axis=0)
+        depot_loc_withID = np.repeat(depot_states, repeats=drone_count, axis=0)
         depot_loc = depot_loc_withID[:, 0:dim]
 
         assignment_matrix = cp.Variable((drone_count, drone_count), symmetric=True)  # no_drones X no_drones
@@ -56,8 +55,8 @@ class Dispatch:
             padding = np.reshape(padding, (drone_surplus, dim + 2))
             jobs = np.vstack([jobs, padding])
         else:
-            jobs = jobs[0:drone_count, :]
-        no_jobs = jobs.shape[0]
+            jobs = jobs[0:drone_count, :]  # only assign the first available_drone_count jobs
+        no_jobs = min(jobs_count, jobs.shape[0]) # number of jobs
 
         # cost_function = cp.sum(cp.norm(assignment_matrix * drone_states[:, 0:3] - jobs[:, 0:3], axis=1))
         cost_function = cp.sum(cp.norm(assignment_matrix * drone_states[:, 0:dim] - depot_assigment * depot_loc, axis=1) +
@@ -66,14 +65,13 @@ class Dispatch:
         package_weights = jobs[:, dim:dim+1]
         beta_vec = np.reshape(np.repeat(beta, drone_states.shape[0]), (drone_states.shape[0], 1))
         drone_battery = np.reshape(drone_states[:, dim + 1], (drone_count, 1))
-        constraints = [assignment_matrix @ np.ones((no_drones, 1)) == 1,
+        constraints = [assignment_matrix @ np.ones((drone_count, 1)) == 1,
                        assignment_matrix == assignment_matrix2,
-                       # cp.multiply(alpha * (assignment_matrix @ drone_weights + package_weights) + beta_vec,
-                       #             1.5 * cp.reshape(cp.norm(assignment_matrix @ drone_states[:, 0:dim] -
-                       #                                      jobs[:, 0:dim], axis=1), (drone_count, 1)))
-                       # <= assignment_matrix @ drone_battery,
-                       # 1.5 * cp.norm((assignment_matrix @ drone_states[:, 0:dim] - jobs[:, 0:dim]), axis=1)) <=
-                       # assignment_matrix @ drone_states[:, dim + 1],
+                       0.001 / 3600 * (alpha * (drone_weights + package_weights)
+                                       + cp.multiply(beta_vec,
+                                                     cp.reshape(cp.norm(assignment_matrix @ drone_states[:, 0:dim] -
+                                                                        jobs[:, 0:dim], axis=1), (drone_count, 1))))
+                       <= assignment_matrix @ drone_battery,
                        cp.sum(depot_assigment, axis=0) <= 1, cp.sum(depot_assigment, axis=1) <= 1
                        ]  # this includes battery constraint to ensure drone can service trip
         MILP_objective = cp.Minimize(cost_function)
@@ -83,21 +81,20 @@ class Dispatch:
             print("Cannot dispatch all drones, removing min SOC drone")
             return
         print(opt_problem.status)
-        return no_jobs, assignment_matrix.value @ drone_states, depot_assigment.value @ depot_loc_withID
+        return no_jobs, drone_count, assignment_matrix.value @ drone_states, depot_assigment.value @ depot_loc_withID
         # NOW WE CAN ASSIGN JOBS MULTIPLE WAYS
 
     def assign_tasks(self, jobs):  # Jobs should be an np array
-        no_jobs, drone_assign, drone_states, assigned_depots = self.get_assignment(jobs)
+        no_jobs, no_drones, drone_assign, assigned_depots = self.get_assignment(jobs)
         for i in range(min(no_drones, no_jobs)):
             drone_with_task = drone_assign[i, ]
             depot_for_drone = assigned_depots[i, ]
             drone_id = drone_with_task[-1]
             depot_id = depot_for_drone[-1]
             drone = self.drone_track[drone_id]
-            drone.status = 1
+            drone.status = 2
             drone.task = jobs[i, ]  # this contains coordinates of job destination and job ID for that drone
             drone.pickup_depot = self.depot_track[depot_id]
-            self.drone_track[drone_id] = drone  # this is just to be double-sure that drone is updated.
 
     def get_assignments_astar(self, task_list, delivery_list, depot_list, paths):
         """fill in matrix of distances, d let the drones that are at depot be m1, drones in transit to depot be m2
