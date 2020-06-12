@@ -27,7 +27,10 @@ class Drone(object):
         self.charge = charge  # current battery charge
         self.target_path = None
         self.tracking_index = None  # needed for traj following
-        self.status = 0  # 0: free, 1: wait_path 2: to_dest, 3: to_charg, 4: to_depot
+        
+        # 0: at_depot_free, 1: at_depot_charging 2: waiting_for_path,
+        # 3: to_dest (dest = delivery_loc/depot), 4: at_delivery_free
+        self.status = 0
         self.task = None
         self.pickup_depot = None
 
