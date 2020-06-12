@@ -17,7 +17,7 @@ def plot_path(drones, depots, obstacles,fig_num=1):
     plot_depots(depots)
 
     for drone in drones:
-        if drone.target_path != None:
+        if drone.status==3:
             solution_path = np.array(drone.target_path)
             if len(solution_path):
                 plt.plot(solution_path[:,0],solution_path[:,1], '--',color="green", linewidth=1, zorder=10)
