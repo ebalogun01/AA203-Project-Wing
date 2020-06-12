@@ -57,14 +57,12 @@ class Drone(object):
         # Assume u is a 3x1 force vector
         # Apply wind disturbance to the control input force
         # Assume no disturbance (p=0.5), random disturbance (p = 0.5)
-        self.velocity = self.velocity + dt * u / self.weight \
-                        + dt * np.array([0, 0, -g])
+        self.velocity = self.velocity + dt * u / self.weight + dt * np.array([0, 0, -g])
         self.position = self.position + dt * self.velocity
         if self.position[2] < 0:
             self.position[2] = 0
         # rate of discharge is proportional to Z force u[3]
-        self.charge -= (alpha * u[3] + beta) * dt
-        print(" Drone charge left is {}".format(self.charge))
+        self.charge -= (alpha * u[2] + beta) * dt
         # self.position = np.rint(self.position)  # Round pos to nearest ints
 
 
@@ -77,29 +75,38 @@ def rollout_dynamics(drones_list):
                 drone.charge = max_charge
                 drone.status = 0
         elif drone.status == 3:  # in-transit
+            print("Drone ID: ", drone.id, " dynamics update. Current position: ", drone.position)
             curr_target = drone.target_path[drone.tracking_index]
-
             kp = np.array([0.5, 0.5, 0.5])
             kd = np.array([0.1, 0.1, 1])
             u = np.multiply(kp, (curr_target - drone.position)) \
                 - np.multiply(kd, drone.velocity)
             u = u + np.array([0, 0, drone.weight * 9.81]) + 0.1 * np.random.randint(2)
             u = np.maximum(np.minimum(u, np.array([5, 5, 20])), np.array([-5, -5, 0]))
-
             drone.step(u)
-            print(drone.id, drone.position, drone.destination)
+            # print(drone.id, drone.position, drone.destination)
             dist_to_curr_target = np.linalg.norm(drone.position - curr_target)
             dist_to_target = np.linalg.norm(drone.position - drone.target_path[len(drone.target_path) - 1])
             if dist_to_target < 0.5:
                 print("Drone ID: ", drone.id, " reached target")
                 drone.position = drone.target_path[len(drone.target_path) - 1]
+                drone.velocity *= 0  # set velocity to zero
+                drone.tracking_index = None  # reset tracking_index
                 if drone.weight > drone_weight:  # drone has package, drop it
+                    print("Drone ID: ", drone.id, "dropping package")
                     drone.weight = drone_weight
                     drone.status = 4  # at delivery free
+                # else the drone is at depot
                 elif drone.charge <= charge_thresh:
+                    print("Drone ID: ", drone.id, "out of charge. Charging...")
                     drone.status = 1  # at depot charging
                 else:
-                    drone.status = 0  # at depot free
+                    if drone.task is not None:  # it already has a task assigned
+                        print("Drone ID: ", drone.id, " at depot, already has task assigned")
+                        drone.status = 2  # waiting for path assignment
+                    else:
+                        print("Drone ID: ", drone.id, " at depot, free")
+                        drone.status = 0  # at depot free
                 break
             if drone.tracking_index == len(drone.target_path) - 1 or dist_to_curr_target > 3:
                 continue

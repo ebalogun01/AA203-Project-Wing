@@ -156,3 +156,17 @@ class Dispatch:
             if drone.status == 0 or drone.status == 4:
                 available_drones.append(drone)
         return available_drones
+    
+    def charging_drones(self):
+        charging_drones = []
+        for drone in self.drones_list:
+            if drone.status == 1:
+                charging_drones.append(drone)
+        return charging_drones
+    
+    def intransit_drones(self):
+        intransit_drones = []
+        for drone in self.drones_list:
+            if drone.status == 3:
+                intransit_drones.append(drone)
+        return intransit_drones

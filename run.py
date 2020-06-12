@@ -44,9 +44,8 @@ for i in range(0, len(heights_of_oper)):
 
 # Initialize drones list at depot with empty delivery locations
 drones_list = []
-vary_pos = np.array([4, 5, 0])
 for i in range(num_drones):
-    init_position = depot_locs[0] + i * vary_pos  # Append the initial Z height of the drone
+    init_position = depot_locs[0]  # Append the initial Z height of the drone
     init_velocity = np.array([0, 0, 0])
     new_drone = Drone(i, init_position, init_velocity, [], 1, 100)
     drones_list.append(new_drone)
@@ -60,16 +59,15 @@ jobs = np.array([[1, 1, 0, 0.6, "001"],
                  [10, 10, 0, 0.7, "003"],
                  [15, 18, 0, 0.3, "004"]])
 # Temporary - Updating just to get run.py to compile
-jobs = np.array([[1, 1, 0, 0.5, 1],
-                 [3, 3, 0, 0.3, 2],
-                 [10, 10, 0, 0.1, 3],
-                 [15, 18, 0, 0.2, 4]])
+jobs = np.array([[99, 50, 0, 0.5, 1], 
+                 [3, 99, 0, 0.7, 2]])
+
 # Initialize pending_jobs
 pending_jobs = jobs
 
 paths_lookup = [[None] * grid_size * grid_size] * (grid_size * grid_size)
 
-max_time = 1
+max_time = 200
 for time in range(0, max_time):
     # Run the world simulation here and break on error
     # Errors can be collision with obstacle OR out of charge, etc.
@@ -79,13 +77,16 @@ for time in range(0, max_time):
     pending_jobs = update_tasks(pending_jobs, grid_lower_left, grid_upper_right, 
                                 obstacle_footprints, depot_locs)
 
-    print("Number of available drones: ", len(dispatch.available()))
+    print("Number of available drones: ", len(dispatch.available()), 
+          "charging drones: ", len(dispatch.charging_drones()), 
+          "in-transit drones: ", len(dispatch.intransit_drones()))
 
     # Run Task Assignment Function
-    dispatch.assign_tasks(jobs)
+    if time == 0:
+        dispatch.assign_tasks(jobs)
     
     # Assign paths to drones with status = 2
-    assign_paths(drones_list, paths_lookup, 
+    assign_paths(drones_list, depot_list, paths_lookup, 
                           grid_lower_left, grid_upper_right, obs_grid_list[1])
 
     drones_list = rollout_dynamics(drones_list)
@@ -99,11 +100,11 @@ for time in range(0, max_time):
 # TODO This list of delivery locations needs to come from MILP solution
 # TODO Need to implement a priority queue data structure somewhere
 
-for i in range(len(incoming_task_list)):
+for i in range(len(jobs)):
     for j in range(len(drones_list)):
         drone = drones_list[j]
         if(drone.status == 0): # drone does not have an active task and is free
-            drone.destination = incoming_task_list[i][1]
+            drone.destination = jobs[i][0:3]
             drone.status = 1
             break
 
@@ -113,7 +114,7 @@ for i in range(len(drones_list)):
     if(drone.status == 1):
         A_star_ = AStar(grid_lower_left, grid_upper_right, \
                         tuple(drone.position[0:2].tolist()), \
-                        tuple(drone.destination.tolist()), obs_grid_list[0])
+                        tuple(drone.destination[0:2].tolist()), obs_grid_list[0])
         A_star_.solve()
         drone.target_path = A_star_.path
         drone.target_path = np.asarray(drone.target_path, dtype = int)
