@@ -89,9 +89,8 @@ for time in range(0, max_time):
 
     # Run Task Assignment Function
     # if time == 0:
-    print("pending jobs length is: {}".format(pending_jobs.shape[0]))
+    print("Pending jobs length is: ", len(pending_jobs))
     pending_jobs = dispatch.assign_tasks(pending_jobs)
-    print("pending jobs length is: {}".format(pending_jobs.shape[0]))
 
     # Assign paths to drones with status = 2
     assign_paths(drones_list, depot_list, paths_lookup,
@@ -100,8 +99,8 @@ for time in range(0, max_time):
     drones_list = rollout_dynamics(drones_list)
     
     result = check_collisions_offset_path(dispatch.intransit_drones())
-    if result == -1:
-        break
+    #if result == -1:
+    #    break
     
     if enable_plot:
         plot_path(drones_list,depot_list,obs_grid_list[0])

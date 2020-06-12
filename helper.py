@@ -41,8 +41,8 @@ def update_tasks(pending_jobs, grid_lo, grid_hi, obstacle_footprints, depot_locs
             job_id = pending_jobs[-1][4] + 1
         package_weight = np.random.randint(5)
         new_job = np.append(np.append(new_loc, package_weight), job_id)
-        print(new_job)
-        np.append(pending_jobs, new_job)
+        print("Adding new job: ", new_job)
+        pending_jobs = np.append(pending_jobs, new_job.reshape([1,5]), axis = 0)
     return pending_jobs
 
 def assign_paths(drones_list, depot_list, paths_lookup, grid_lo, grid_hi, obs_grid):
@@ -116,7 +116,7 @@ def check_collisions_offset_path(intransit_drones_list):
                 offset_array[:,2] += 0.1  # offset by units
                 
                 ### Comment this out if you see issues
-                drone_to_change.target_path[curr_index:curr_index+update_buffer] += offset_array
+                # drone_to_change.target_path[curr_index:curr_index+update_buffer] += offset_array
                 return 1
     return 0
 
