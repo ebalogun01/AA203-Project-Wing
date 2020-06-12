@@ -3,7 +3,7 @@ import numpy as np
 
 state_size = 6
 depot_info_size = 4
-# drone_weight = 1.5  # kg
+# drone_weight = 1  # kg
 alpha = 46.7
 beta = 26.9
 

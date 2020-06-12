@@ -56,6 +56,8 @@ def assign_paths(drones_list, depot_list, paths_lookup, grid_lo, grid_hi, obs_gr
                 drone.pickup_depot = None  # set to None, since it is being processed
             else:
                 drone.destination = drone.task[0:3]  # x,y,z location
+                drone.weight += drone.task[3]  # assign package weight
+                print("Drone ID: ", drone.id, " assigned task: ", drone.destination, " weight: ", drone.weight)
                 drone.task = None  # set to None, since it is being processed
             
             init = tuple(drone.position[0:2])

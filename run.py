@@ -11,6 +11,8 @@ from helper import update_tasks, assign_paths
 from visualization import plot_path
 import matplotlib.pyplot as plt
 
+enable_plot = False
+
 # Grid Parameters
 grid_size = 100
 grid_lower_left = (0, 0)
@@ -94,10 +96,12 @@ for time in range(0, max_time):
                           grid_lower_left, grid_upper_right, obs_grid_list[1])
 
     drones_list = rollout_dynamics(drones_list)
-    plot_path(drones_list,depot_list,obs_grid_list[0])
-    plt.draw()
-    plt.pause(.001)
-    plt.close(1)
+    
+    if enable_plot:
+        plot_path(drones_list,depot_list,obs_grid_list[0])
+        plt.draw()
+        plt.pause(.001)
+        plt.close(1)
 
     time += 1
     if time == max_time:

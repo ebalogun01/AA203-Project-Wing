@@ -11,7 +11,7 @@ import numpy as np
 dt = 1
 rho = 1.204  # kg/m^3
 rotor_blade_area = 0.2  # m^2 propeller blades effective area
-drone_weight = 1.5  # kg
+drone_weight = 1  # kg
 alpha = 46.7
 beta = 26.9
 g = 9.81  # gravity
@@ -62,7 +62,7 @@ class Drone(object):
         if self.position[2] < 0:
             self.position[2] = 0
         # rate of discharge is proportional to Z force u[3]
-        self.charge -= (alpha * u[2] + beta) * dt
+        self.charge -= (alpha * u[2] + beta) * dt * 0.0005
         # self.position = np.rint(self.position)  # Round pos to nearest ints
 
 
@@ -75,7 +75,8 @@ def rollout_dynamics(drones_list):
                 drone.charge = max_charge
                 drone.status = 0
         elif drone.status == 3:  # in-transit
-            print("Drone ID: ", drone.id, " dynamics update. Current position: ", drone.position)
+            print("Drone ID: ", drone.id, " dynamics update. Curr position: ", 
+                  drone.position, " Curr charge: ", drone.charge)
             curr_target = drone.target_path[drone.tracking_index]
             kp = np.array([0.5, 0.5, 0.5])
             kd = np.array([0.1, 0.1, 1])
