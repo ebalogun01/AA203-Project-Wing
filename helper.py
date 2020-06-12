@@ -91,6 +91,35 @@ def assign_paths(drones_list, depot_list, paths_lookup, grid_lo, grid_hi, obs_gr
                     drone.tracking_index = 1
     return 0
 
+def check_collisions_offset_path(intransit_drones_list):
+# check if two drones are getting close and offset paths in Z to avoid collision
+# if two drones are very close within 1 unit, return an error
+    for i in range(0, len(intransit_drones_list)-1):
+        for j in range(i+1, len(intransit_drones_list)):
+            drone1 = intransit_drones_list[i]
+            drone2 = intransit_drones_list[j]
+            dist = np.linalg.norm(drone1.position - drone2.position)
+            if dist < 0.4:
+                print("Error! Drones are too close")
+                return -1
+            elif dist < 2:  # Buffer for path correction in Z
+                # Check which drone is roughly in the lower section of its traj
+                print("Drone ID: ", drone1.id, " and ID: ", drone2.id, " are getting close")
+                drone_to_change = None
+                if drone1.tracking_index / len(drone1.target_path) < 0.8:
+                    drone_to_change = drone1
+                elif drone2.tracking_index / len(drone2.target_path) < 0.8:
+                    drone_to_change = drone2
+                update_buffer = 5
+                curr_index = drone_to_change.tracking_index
+                offset_array = np.zeros([update_buffer, 3])
+                offset_array[:,2] += 0.1  # offset by units
+                
+                ### Comment this out if you see issues
+                drone_to_change.target_path[curr_index:curr_index+update_buffer] += offset_array
+                return 1
+    return 0
+
 # Previous code for testing simulated assignment
 #for i in range(0, 2):
 #    drone = drones_list[i]

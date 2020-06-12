@@ -15,8 +15,8 @@ drone_weight = 1  # kg
 alpha = 46.7
 beta = 26.9
 g = 9.81  # gravity
-max_charge = 100  # max charge for each drone
-charge_thresh = 60  # charge threshold (for recharge decision)
+max_charge = 0.1  # max charge for each drone in Wh
+charge_thresh = max_charge * 0.6  # charge threshold (for recharge decision)
 
 
 class Drone(object):
@@ -61,8 +61,8 @@ class Drone(object):
         self.position = self.position + dt * self.velocity
         if self.position[2] < 0:
             self.position[2] = 0
-        # rate of discharge is proportional to Z force u[3]
-        self.charge -= (alpha * u[2] + beta) * dt * 0.0005
+        # rate of discharge is proportional to Z force u[2]/g ~ mass
+        self.charge -= (alpha * u[2]/g + beta) * dt / (1000*3600)
         # self.position = np.rint(self.position)  # Round pos to nearest ints
 
 
@@ -70,13 +70,13 @@ def rollout_dynamics(drones_list):
     # TODO: Add dynamics here
     for drone in drones_list:
         if drone.status == 1:  # at depot charging
-            drone.charge += 5
+            drone.charge += 0.2
             if drone.charge >= max_charge:
                 drone.charge = max_charge
                 drone.status = 0
         elif drone.status == 3:  # in-transit
             print("Drone ID: ", drone.id, " dynamics update. Curr position: ", 
-                  drone.position, " Curr charge: ", drone.charge)
+                  drone.position, " Curr charge percent: ", drone.charge/max_charge*100)
             curr_target = drone.target_path[drone.tracking_index]
             kp = np.array([0.5, 0.5, 0.5])
             kd = np.array([0.1, 0.1, 1])

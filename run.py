@@ -3,11 +3,11 @@
 import numpy as np
 from astar import DetOccupancyGrid2D
 from astar import AStar
-from drone import Drone, rollout_dynamics
+from drone import Drone, rollout_dynamics, max_charge
 from obstacle import obstacle
 from depot import Depot
 from dispatch import Dispatch
-from helper import update_tasks, assign_paths
+from helper import update_tasks, assign_paths, check_collisions_offset_path
 from visualization import plot_path
 import matplotlib.pyplot as plt
 
@@ -53,7 +53,7 @@ drones_list = []
 for i in range(num_drones):
     init_position = depot_locs[0]  # Append the initial Z height of the drone
     init_velocity = np.array([0, 0, 0])
-    new_drone = Drone(i, init_position, init_velocity, [], 1, 100)
+    new_drone = Drone(i, init_position, init_velocity, [], 1, max_charge)
     drones_list.append(new_drone)
 
 # Initialize dispatch
@@ -96,6 +96,10 @@ for time in range(0, max_time):
                           grid_lower_left, grid_upper_right, obs_grid_list[1])
 
     drones_list = rollout_dynamics(drones_list)
+    
+    result = check_collisions_offset_path(dispatch.intransit_drones())
+    if result == -1:
+        break
     
     if enable_plot:
         plot_path(drones_list,depot_list,obs_grid_list[0])
