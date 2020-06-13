@@ -40,7 +40,7 @@ for i in range(0, len(depot_locs)):
 # List of all delivery locations
 delivery_locs = np.array([[99, 50, 0], [3, 99, 0], [98, 98, 0], [97, 97, 0]])
 
-num_drones = 1
+num_drones = 10
 
 # Define grid sections according to heights of operation in 2D
 heights_of_oper = [0, 50]  # [50, 60, 70, 80, 90]

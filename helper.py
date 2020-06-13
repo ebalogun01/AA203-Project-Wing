@@ -41,7 +41,7 @@ def update_tasks(pending_jobs, grid_lo, grid_hi, obstacle_footprints, depot_locs
             job_id = 1
         else:
             job_id = pending_jobs[-1][4] + 1
-        package_weight = np.random.randint(5,20)/10
+        package_weight = np.random.randint(1,5)/10
         print("Package ", package_weight)
         new_job = np.append(np.append(new_loc, package_weight), job_id)
         print("Adding new job: ", new_job)
