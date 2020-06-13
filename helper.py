@@ -12,22 +12,22 @@ def pick_location(grid_lo, grid_hi, obstacle_footprints, depot_locs):
         y = np.random.randint(grid_lo[1]+buffer, grid_hi[1]-buffer)
         new_loc = np.array([x, y])
         print(new_loc)
-        
+
         if new_loc in depot_locs[:,0:2]:
             # Same location as depot, choose again
             print("Depot here")
             continue
-        
+
         inside = False
         for obs in obstacle_footprints:
             if not inside:
-                if new_loc[0]+2 > obs[0][0] and new_loc[0]-2 < obs[1][0] and \
-                new_loc[1]+2 > obs[0][1] and new_loc[1]-2 < obs[1][1]:
+                if new_loc[0]+4 > obs[0][0] and new_loc[0]-4 < obs[1][0] and \
+                new_loc[1]+4 > obs[0][1] and new_loc[1]-4 < obs[1][1]:
                     # Inside an obstacle
                     print("Inside obstacle")
                     inside = True
                     break
-    
+
     return np.append(new_loc, 0)
 
 def update_tasks(pending_jobs, grid_lo, grid_hi, obstacle_footprints, depot_locs):
@@ -61,10 +61,10 @@ def assign_paths(drones_list, depot_list, paths_lookup, grid_lo, grid_hi, obs_gr
                 drone.weight += drone.task[3]  # assign package weight
                 print("Drone ID: ", drone.id, " assigned task: ", drone.destination, " weight: ", drone.weight)
                 drone.task = None  # set to None, since it is being processed
-            
+
             init = tuple(drone.position[0:2])
             target = tuple(drone.destination[0:2])
-            print("Assigning path, drone ID: ", drone.id, " Init: ", init, 
+            print("Assigning path, drone ID: ", drone.id, " Init: ", init,
                   " Target: ", target)
             init_idx = int(init[0] * grid_size + init[1])
             target_idx = int(target[0] * grid_size + target[1])
@@ -116,7 +116,7 @@ def check_collisions_offset_path(intransit_drones_list):
                 curr_index = drone_to_change.tracking_index
                 offset_array = np.zeros([update_buffer, 3])
                 offset_array[:,2] += 0.1  # offset by units
-                
+
                 ### Comment this out if you see issues
                 # drone_to_change.target_path[curr_index:curr_index+update_buffer] += offset_array
                 return 1
