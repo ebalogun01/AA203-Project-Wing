@@ -9,7 +9,10 @@ from depot import Depot
 from dispatch import Dispatch
 from helper import update_tasks, assign_paths, check_collisions_offset_path
 from visualization import plot_path
+import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.animation as manimation
+matplotlib.use("Agg")
 
 enable_plot = True
 
@@ -68,50 +71,60 @@ jobs = np.array([[1, 1, 0, 0.6, "001"],
 jobs = np.array([[99, 50, 0, 0.5, 1],
                  [3, 99, 0, 0.7, 2]])
 
+# Inititialize Animation
+FFMPegWriter = manimation.writers['ffmpeg']
+writer = FFMPegWriter(fps=10)
+fig = plt.figure(1)
+
 # Initialize pending_jobs
 pending_jobs = jobs
 
 paths_lookup = [[None] * grid_size * grid_size] * (grid_size * grid_size)
 
 max_time = 200
-for time in range(0, max_time):
-    # Run the world simulation here and break on error
-    # Errors can be collision with obstacle OR out of charge, etc.
-    print("Time: ", time)
+with writer.saving(fig,"animation.mp4",max_time):
+    for time in range(0, max_time):
+        # Run the world simulation here and break on error
+        # Errors can be collision with obstacle OR out of charge, etc.
+        print("Time: ", time)
 
-    # Randomly add random jobs to the pending job list with probability 0.2
-    pending_jobs = update_tasks(pending_jobs, grid_lower_left, grid_upper_right,
-                                obstacle_footprints, depot_locs)
+        # Randomly add random jobs to the pending job list with probability 0.2
+        pending_jobs = update_tasks(pending_jobs, grid_lower_left, grid_upper_right,
+                                    obstacle_footprints, depot_locs)
 
-    print("Number of available drones: ", len(dispatch.available()),
-          "charging drones: ", len(dispatch.charging_drones()),
-          "in-transit drones: ", len(dispatch.intransit_drones()))
+        print("Number of available drones: ", len(dispatch.available()),
+              "charging drones: ", len(dispatch.charging_drones()),
+              "in-transit drones: ", len(dispatch.intransit_drones()))
 
-    # Run Task Assignment Function
-    # if time == 0:
-    print("Pending jobs length is: ", len(pending_jobs))
-    pending_jobs = dispatch.assign_tasks(pending_jobs)
+        # Run Task Assignment Function
+        # if time == 0:
+        print("Pending jobs length is: ", len(pending_jobs))
+        pending_jobs = dispatch.assign_tasks(pending_jobs)
 
-    # Assign paths to drones with status = 2
-    assign_paths(drones_list, depot_list, paths_lookup,
-                          grid_lower_left, grid_upper_right, obs_grid_list[1])
+        # Assign paths to drones with status = 2
+        result = assign_paths(drones_list, depot_list, paths_lookup,
+                              grid_lower_left, grid_upper_right, obs_grid_list[1])
 
-    drones_list = rollout_dynamics(drones_list)
-    
-    result = check_collisions_offset_path(dispatch.intransit_drones())
-    #if result == -1:
-    #    break
-    
-    if enable_plot:
-        plot_path(drones_list,depot_list,obs_grid_list[0])
-        plt.draw()
-        plt.pause(.001)
-        plt.close(1)
+        if result == -1:
+            exit()
 
-    time += 1
-    if time == max_time:
-        print("Simulation Complete!")
-        break
+        drones_list = rollout_dynamics(drones_list)
+
+        result = check_collisions_offset_path(dispatch.intransit_drones())
+        #if result == -1:
+        #    break
+
+        if enable_plot:
+            plot_path(drones_list,depot_list,obs_grid_list[0])
+            #plt.draw()
+            #plt.pause(.001)
+            writer.grab_frame()
+            plt.clf()
+
+        time += 1
+        if time == max_time:
+            print("Simulation Complete!")
+            break
 
 '''
 # TODO This list of delivery locations needs to come from MILP solution
