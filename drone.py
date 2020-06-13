@@ -40,6 +40,8 @@ class Drone(object):
         self.u_history = None
         self.position_history = None
         self.velocity_history = None
+        self.energy_used = 0
+        self.completed_tasks = 0
 
     def add_package(self, package_weight):
         self.weight += package_weight
@@ -63,6 +65,8 @@ class Drone(object):
             self.position[2] = 0
         # rate of discharge is proportional to Z force u[2]/g ~ mass
         self.charge -= (alpha * u[2]/g + beta) * dt / (1000*3600)
+        self.energy_used += (alpha * u[2]/g + beta) * dt / (1000*3600)
+        
         # self.position = np.rint(self.position)  # Round pos to nearest ints
 
 
@@ -71,6 +75,7 @@ def rollout_dynamics(drones_list):
     for drone in drones_list:
         if drone.status == 1:  # at depot charging
             drone.charge += 0.2
+            #drone.energy_used += 0.2
             if drone.charge >= max_charge:
                 drone.charge = max_charge
                 drone.status = 0
@@ -79,18 +84,18 @@ def rollout_dynamics(drones_list):
                   drone.position, " Curr charge percent: ", drone.charge/max_charge*100)
             curr_target = drone.target_path[drone.tracking_index]
             kp = np.array([0.5, 0.5, 0.5])
-            kd = np.array([0.1, 0.1, 1])
+            kd = np.array([0.2, 0.2, 1.5])
             u = np.multiply(kp, (curr_target - drone.position)) \
                 - np.multiply(kd, drone.velocity)
             u = u + np.array([0, 0, drone.weight * 9.81]) + 0.1 * np.random.randint(2)
-            u = np.maximum(np.minimum(u, np.array([5, 5, 20])), np.array([-5, -5, 0]))
+            u = np.maximum(np.minimum(u, np.array([5, 5, 50])), np.array([-5, -5, 0]))
             drone.step(u)
             # print(drone.id, drone.position, drone.destination)
             dist_to_curr_target = np.linalg.norm(drone.position - curr_target)
             dist_to_target = np.linalg.norm(drone.position - drone.target_path[len(drone.target_path) - 1])
             if dist_to_target < 0.5:
                 print("Drone ID: ", drone.id, " reached target")
-                drone.position = drone.target_path[len(drone.target_path) - 1]
+                drone.position = drone.target_path[-1]
                 drone.velocity *= 0  # set velocity to zero
                 drone.tracking_index = None  # reset tracking_index
                 if drone.weight > drone_weight:  # drone has package, drop it

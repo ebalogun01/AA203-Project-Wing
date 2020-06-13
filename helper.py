@@ -3,6 +3,8 @@
 import numpy as np
 from astar import AStar
 
+np.random.seed(10)
+
 def pick_location(grid_lo, grid_hi, obstacle_footprints, depot_locs):
 # Returns random [x,y,0] location for delivery that is not a depot or obstacle
     inside = True
@@ -31,7 +33,7 @@ def pick_location(grid_lo, grid_hi, obstacle_footprints, depot_locs):
     return np.append(new_loc, 0)
 
 def update_tasks(pending_jobs, grid_lo, grid_hi, obstacle_footprints, depot_locs):
-    prob_new_job = 0.2
+    prob_new_job = 0.05
     a = np.random.randint(10)  # Uniform random int
     if a < 10*prob_new_job:  # Implements probability function
         new_loc = pick_location(grid_lo, grid_hi, obstacle_footprints, depot_locs)
@@ -39,7 +41,8 @@ def update_tasks(pending_jobs, grid_lo, grid_hi, obstacle_footprints, depot_locs
             job_id = 1
         else:
             job_id = pending_jobs[-1][4] + 1
-        package_weight = np.random.randint(5)
+        package_weight = np.random.randint(5,20)/10
+        print("Package ", package_weight)
         new_job = np.append(np.append(new_loc, package_weight), job_id)
         print("Adding new job: ", new_job)
         pending_jobs = np.append(pending_jobs, new_job.reshape([1,5]), axis = 0)
@@ -60,6 +63,7 @@ def assign_paths(drones_list, depot_list, paths_lookup, grid_lo, grid_hi, obs_gr
                 drone.destination = drone.task[0:3]  # x,y,z location
                 drone.weight += drone.task[3]  # assign package weight
                 print("Drone ID: ", drone.id, " assigned task: ", drone.destination, " weight: ", drone.weight)
+                drone.completed_tasks += 1
                 drone.task = None  # set to None, since it is being processed
 
             init = tuple(drone.position[0:2])
@@ -68,25 +72,25 @@ def assign_paths(drones_list, depot_list, paths_lookup, grid_lo, grid_hi, obs_gr
                   " Target: ", target)
             init_idx = int(init[0] * grid_size + init[1])
             target_idx = int(target[0] * grid_size + target[1])
-            if paths_lookup[init_idx][target_idx] is not None:
-                print("Path already exists in lookup")
-                drone.target_path = paths_lookup[init_idx][target_idx]
+            #if paths_lookup[init_idx][target_idx] is not None:
+            #    print("Path already exists in lookup")
+            #    drone.target_path = paths_lookup[init_idx][target_idx]
+            #else:
+            A_star_ = AStar(grid_lo, grid_hi, init, target, obs_grid)
+            A_star_.solve()
+            drone.target_path = A_star_.path
+            if drone.target_path is None:
+                print("Infeasible A-star path for drone ID:", drone.id)
+                return -1
             else:
-                A_star_ = AStar(grid_lo, grid_hi, init, target, obs_grid)
-                A_star_.solve()
-                drone.target_path = A_star_.path
-                if drone.target_path is None:
-                    print("Infeasible A-star path for drone ID:", drone.id)
-                    return -1
-                else:
-                    # append 2D target path with height = 50 next
-                    drone.target_path = np.asarray(drone.target_path, dtype = int)
-                    drone.target_path = np.append(drone.target_path, 50*np.ones([len(drone.target_path),1]), 1)
-                    # Add final drop off location at height 0 below final point
-                    actual_dropoff = np.append(drone.target_path[-1][0:2],0)
-                    actual_dropoff = np.reshape(actual_dropoff, (-1,3))
-                    drone.target_path = np.append(drone.target_path, actual_dropoff, axis = 0)
-                    paths_lookup[init_idx][target_idx] = drone.target_path
+                # append 2D target path with height = 50 next
+                drone.target_path = np.asarray(drone.target_path, dtype = int)
+                drone.target_path = np.append(drone.target_path, 50*np.ones([len(drone.target_path),1]), 1)
+                # Add final drop off location at height 0 below final point
+                actual_dropoff = np.append(drone.target_path[-1][0:2],0)
+                actual_dropoff = np.reshape(actual_dropoff, (-1,3))
+                drone.target_path = np.append(drone.target_path, actual_dropoff, axis = 0)
+                paths_lookup[init_idx][target_idx] = drone.target_path
             drone.status = 3  # in-transit, will be picked up by dynamics
             # tracking index init for dynamics
             drone.tracking_index = 1
