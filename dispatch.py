@@ -91,7 +91,7 @@ class Dispatch:
         for i in range(min(no_drones, no_jobs)):
             drone_with_task = drone_assign[i, ]
             depot_for_drone = assigned_depots[i, ]
-            drone_id = drone_with_task[-1]
+            drone_id = round(drone_with_task[-1])
             depot_id = round(depot_for_drone[-1])
             drone = self.drone_track[drone_id]
             drone.status = 2
