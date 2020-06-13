@@ -11,7 +11,7 @@ from helper import update_tasks, assign_paths, check_collisions_offset_path
 from visualization import plot_path
 import matplotlib.pyplot as plt
 
-enable_plot = False
+enable_plot = True
 
 # Grid Parameters
 grid_size = 100
