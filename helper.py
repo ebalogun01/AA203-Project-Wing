@@ -50,11 +50,13 @@ def assign_paths(drones_list, depot_list, paths_lookup, grid_lo, grid_hi, obs_gr
     for drone in drones_list:
         if drone.status == 2:
             # Check if the drone is going to a depot
-            if not np.array_equal(drone.pickup_depot.location, drone.position):  # drone is not at its assigned depot
+            if drone.pickup_depot is not None and \
+            not np.array_equal(drone.pickup_depot.location, drone.position):  # drone is not at its assigned depot
                 print("Drone ID: ", drone.id, " not at pickup depot", drone.pickup_depot.location, drone.position)
                 drone.destination = drone.pickup_depot.location
                 drone.pickup_depot = None  # set to None, since it is being processed
-            else:
+            elif drone.task is not None:
+                # Not going to depot, implies task has to be assigned
                 drone.destination = drone.task[0:3]  # x,y,z location
                 drone.weight += drone.task[3]  # assign package weight
                 print("Drone ID: ", drone.id, " assigned task: ", drone.destination, " weight: ", drone.weight)
@@ -84,11 +86,11 @@ def assign_paths(drones_list, depot_list, paths_lookup, grid_lo, grid_hi, obs_gr
                     actual_dropoff = np.append(drone.target_path[-1][0:2],0)
                     actual_dropoff = np.reshape(actual_dropoff, (-1,3))
                     drone.target_path = np.append(drone.target_path, actual_dropoff, axis = 0)
-                    drone.status = 3  # in-transit, will be picked up by dynamics
                     paths_lookup[init_idx][target_idx] = drone.target_path
-                    
-                    # tracking index init for dynamics
-                    drone.tracking_index = 1
+            drone.status = 3  # in-transit, will be picked up by dynamics
+            # tracking index init for dynamics
+            drone.tracking_index = 1
+
     return 0
 
 def check_collisions_offset_path(intransit_drones_list):
