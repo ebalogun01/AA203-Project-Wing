@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 # from utils import plot_line_segments
 
+"""This code is adopted from AA274 class at Stanford 'Principles of Robot autonomy.' Uses the A* algorithm for motion
+planning. """
+
 class AStar(object):
     """Represents a motion planning problem to be solved using A*"""
 
