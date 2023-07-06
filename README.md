@@ -1,4 +1,5 @@
-# Project Wing
-Authors: Emmanuel Balogun, Courtney Moran, Sangram Patil
-Correspondence: ebalogun@stanford.edu
-Optimal routing an control of drone fleets. Please reference this github for any code used or work inspired by this project. 
+# Project Wing: Optimal routing and control of drone fleets. 
+### Authors: Emmanuel Balogun, Courtney Moran, Sangram Patil
+Please reference this github for any code used or work inspired by this project.
+### Correspondence: ebalogun@stanford.edu 
+
