@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Balogun"
+  given-names: "Emmanuel"
+  orcid: "https://orcid.org/0000-0002-6667-9410"
+- family-names: "Moran"
+  given-names: "Courtney"
+  orcid: "https://orcid.org/0000-0000-0000-0000"
+- family-names: "Patil"
+  given-names: "Sangram"
+  orcid: "https://orcid.org/0000-0000-0000-0000"
+title: "Drone Fleet Delivery Route Optimization"
+version: 0.0.1
+date-released: 2020-06-20
+url: "https://github.com/ebalogun01/AA203-Project-Wing"
